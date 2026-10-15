@@ -1,0 +1,54 @@
+# Builds the Android APK. Download it from the run's "Artifacts" and sideload it on the phones.
+# With the MUSICHUB_* secrets set (see README) it builds a signed release APK that installs over
+# the previous version; without them it falls back to a debug APK.
+name: Build Android APK
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      HAS_KEYSTORE: ${{ secrets.MUSICHUB_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync android
+
+      - name: Assemble signed release APK
+        if: env.HAS_KEYSTORE == 'true'
+        working-directory: android
+        env:
+          KEYSTORE_B64: ${{ secrets.MUSICHUB_KEYSTORE_BASE64 }}
+          MUSICHUB_KEYSTORE_PASSWORD: ${{ secrets.MUSICHUB_KEYSTORE_PASSWORD }}
+          MUSICHUB_KEY_ALIAS: ${{ secrets.MUSICHUB_KEY_ALIAS }}
+          MUSICHUB_KEY_PASSWORD: ${{ secrets.MUSICHUB_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/musichub.jks"
+          export MUSICHUB_KEYSTORE="$RUNNER_TEMP/musichub.jks"
+          chmod +x gradlew && ./gradlew assembleRelease --no-daemon
+          mkdir -p ../apk && cp app/build/outputs/apk/release/app-release.apk ../apk/MusicHub.apk
+
+      - name: Assemble debug APK (no signing secrets set)
+        if: env.HAS_KEYSTORE != 'true'
+        working-directory: android
+        run: |
+          chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+          mkdir -p ../apk && cp app/build/outputs/apk/debug/app-debug.apk ../apk/MusicHub-debug.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MusicHub-apk
+          path: apk/*.apk

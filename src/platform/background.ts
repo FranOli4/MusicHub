@@ -1,0 +1,97 @@
+import { Capacitor } from '@capacitor/core';
+import { player } from '../engine/player';
+
+// Keeps playback alive and controllable when the screen is off:
+// - Media Session (lock-screen / media keys / Windows media flyout) everywhere.
+// - On Android, a foreground "media playback" service so the OS doesn't freeze the app overnight.
+
+export interface BackgroundActions {
+  /** "Next" from the notification / media keys: new song, or next favourite in a rotation. */
+  next(): void;
+}
+
+const NOTIFICATION_ID = 7;
+const BUTTON_PLAY_PAUSE = 1;
+const BUTTON_NEXT = 2;
+/** android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK */
+const SERVICE_TYPE_MEDIA_PLAYBACK = 2;
+
+export function initBackground(actions: BackgroundActions): void {
+  const session = typeof navigator !== 'undefined' ? navigator.mediaSession : undefined;
+  if (session) {
+    session.setActionHandler('play', () => void player.resume());
+    session.setActionHandler('pause', () => player.pause());
+    session.setActionHandler('stop', () => player.pause());
+    session.setActionHandler('nexttrack', () => actions.next());
+  }
+
+  const android = Capacitor.getPlatform() === 'android';
+  let service: typeof import('@capawesome-team/capacitor-android-foreground-service').ForegroundService | null = null;
+  let serviceRunning = false;
+  let lastKey = '';
+
+  if (android) {
+    void import('@capawesome-team/capacitor-android-foreground-service').then(async ({ ForegroundService, Importance }) => {
+      service = ForegroundService;
+      await ForegroundService.createNotificationChannel({
+        id: 'playback',
+        name: 'Playback',
+        description: 'Shows what MusicHub is playing',
+        importance: Importance.Low,
+      });
+      await ForegroundService.addListener('buttonClicked', ({ buttonId }) => {
+        if (buttonId === BUTTON_PLAY_PAUSE) player.toggle();
+        if (buttonId === BUTTON_NEXT) actions.next();
+      });
+      sync();
+    });
+  }
+
+  function sync() {
+    const { status, current } = player.getState();
+    const active = status === 'playing' || status === 'loading';
+    const spaceLabel = current?.space === 'sleep' ? 'Sleep' : 'Think';
+
+    if (session) {
+      session.playbackState = active ? 'playing' : current ? 'paused' : 'none';
+      if (current) {
+        session.metadata = new MediaMetadata({
+          title: current.title,
+          artist: `MusicHub · ${spaceLabel}`,
+          artwork: [{ src: `${import.meta.env.BASE_URL}icon.svg`, sizes: '512x512', type: 'image/svg+xml' }],
+        });
+      }
+    }
+
+    if (!service) return;
+    const key = `${active}|${current?.title}`;
+    if (key === lastKey) return;
+    lastKey = key;
+    if (current) {
+      const options = {
+        id: NOTIFICATION_ID,
+        title: current.title,
+        body: active ? `Playing · ${spaceLabel}` : `Paused · ${spaceLabel}`,
+        smallIcon: 'ic_stat_music',
+        silent: true,
+        notificationChannelId: 'playback',
+        serviceType: SERVICE_TYPE_MEDIA_PLAYBACK as never,
+        buttons: [
+          { id: BUTTON_PLAY_PAUSE, title: active ? 'Pause' : 'Play' },
+          { id: BUTTON_NEXT, title: 'Next' },
+        ],
+      };
+      if (!serviceRunning) {
+        serviceRunning = true;
+        void service.requestPermissions().finally(() => service!.startForegroundService(options));
+      } else {
+        void service.updateForegroundService(options);
+      }
+    } else if (serviceRunning) {
+      serviceRunning = false;
+      void service.stopForegroundService();
+    }
+  }
+
+  player.subscribe(sync);
+}

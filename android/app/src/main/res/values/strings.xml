@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MusicHub</string>
+    <string name="title_activity_main">MusicHub</string>
+    <string name="package_name">app.musichub.family</string>
+    <string name="custom_url_scheme">app.musichub.family</string>
+</resources>

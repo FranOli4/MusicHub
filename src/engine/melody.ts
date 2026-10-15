@@ -1,0 +1,122 @@
+import type { Rng } from './rng';
+import { nearestPitch, scaleNotes, snapToChord } from './theory';
+import type { PhraseContext } from './types';
+
+export interface Motif {
+  steps: number[];
+  rhythm: number[];
+}
+
+export interface MelNote {
+  t: number;
+  d: number;
+  m: number;
+  v: number;
+}
+
+export interface MelodyOptions {
+  low: number;
+  high: number;
+  /** Where the first note gravitates to. */
+  center: number;
+  /** 0–1: chance of passing/neighbour notes on long notes. */
+  ornament: number;
+  /** 0–1: chance of dropping inner notes (sparser, for sleep). */
+  rest: number;
+}
+
+/** Build a motif from a rhythm vocabulary and contour tendencies. */
+export function makeMotif(rng: Rng, rhythms: number[][], maxLeap = 3): Motif {
+  const rhythm = rng.pick(rhythms);
+  const steps = rhythm.map((_, i) => {
+    if (i === 0) return 0;
+    return rng.weighted([
+      [1, 4], [-1, 4], [0, 1.5], [2, 2], [-2, 2], [maxLeap, 0.7], [-maxLeap, 0.5],
+    ] as const);
+  });
+  return { steps, rhythm };
+}
+
+/**
+ * Turn a motif into a full phrase melody over the phrase's chords:
+ * statement, answer (sequence or inversion), half cadence mid-phrase, full cadence at the end.
+ */
+export function generateMelody(ctx: PhraseContext, motif: Motif, rng: Rng, o: MelodyOptions): MelNote[] {
+  const { meter, bars } = ctx;
+  const total = bars * meter;
+  const motifBeats = motif.rhythm.reduce((a, b) => a + b, 0);
+  const unitBeats = Math.max(meter, Math.ceil(motifBeats / meter) * meter);
+  const units = Math.max(1, Math.floor(total / unitBeats));
+  const scale = scaleNotes(ctx.keyPc, ctx.recipe.scale, o.low - 12, o.high + 12);
+  const half = total / 2;
+  const strongEvery = meter === 3 ? 3 : 2;
+
+  const nearestIndex = (m: number) => {
+    let best = 0;
+    for (let i = 1; i < scale.length; i++) if (Math.abs(scale[i] - m) < Math.abs(scale[best] - m)) best = i;
+    return best;
+  };
+  const move = (m: number, steps: number) => scale[Math.min(scale.length - 1, Math.max(0, nearestIndex(m) + steps))];
+  const clamp = (m: number) => {
+    while (m > o.high) m -= 12;
+    while (m < o.low) m += 12;
+    return m;
+  };
+
+  const notes: MelNote[] = [];
+  let unitStart = clamp(snapToChord(o.center, ctx.chordAt(0)));
+
+  for (let u = 0; u < units; u++) {
+    const t0 = u * unitBeats;
+    const endsHalf = units > 1 && t0 + unitBeats === half;
+    const endsPhrase = u === units - 1;
+
+    let invert = false;
+    if (u > 0) {
+      const develop = ctx.variation.develop || u % 2 === 1;
+      const shape = develop ? rng.pick(['seqDown', 'seqUp', 'invert', 'plain'] as const) : 'plain';
+      if (shape === 'seqDown') unitStart = move(unitStart, -1);
+      else if (shape === 'seqUp') unitStart = move(unitStart, 2);
+      else if (shape === 'invert') invert = true;
+      unitStart = clamp(snapToChord(unitStart, ctx.chordAt(t0)));
+    }
+
+    let cur = unitStart;
+    let t = t0;
+    for (let k = 0; k < motif.rhythm.length && t < t0 + unitBeats; k++) {
+      if (k > 0) cur = move(cur, invert ? -motif.steps[k] : motif.steps[k]);
+      if (Math.abs(t % strongEvery) < 1e-6) cur = snapToChord(cur, ctx.chordAt(t));
+      cur = clamp(cur);
+      const isLast = k === motif.rhythm.length - 1 || t + motif.rhythm[k] >= t0 + unitBeats;
+      const d = isLast ? t0 + unitBeats - t : motif.rhythm[k];
+      if (isLast && endsPhrase) cur = clamp(nearestPitch(ctx.keyPc, cur));
+      else if (isLast && endsHalf) cur = clamp(snapToChord(cur, ctx.chordAt(t)));
+      notes.push({ t, d, m: cur, v: 0 });
+      t += d;
+    }
+  }
+
+  // Ornaments and rests, then a gentle dynamic arc across the phrase.
+  const out: MelNote[] = [];
+  notes.forEach((n, i) => {
+    const next = notes[i + 1];
+    const inner = i > 0 && next && Math.abs(next.t % unitBeats) > 1e-6;
+    if (inner && rng.chance(o.rest)) {
+      if (out.length) out[out.length - 1].d += n.d;
+      return;
+    }
+    if (next && n.d >= 1 && Math.abs(next.m - n.m) >= 3 && rng.chance(o.ornament)) {
+      const passing = move(n.m, next.m > n.m ? 1 : -1);
+      out.push({ ...n, d: n.d - 0.5 }, { t: n.t + n.d - 0.5, d: 0.5, m: passing, v: 0 });
+      return;
+    }
+    out.push({ ...n });
+  });
+
+  for (const n of out) {
+    const arc = Math.sin(Math.PI * Math.min(1, (n.t + 0.5) / total));
+    const strong = Math.abs(n.t % meter) < 1e-6 ? 0.06 : 0;
+    n.v = Math.min(1, 0.5 + 0.25 * arc + strong + rng.range(-0.04, 0.04));
+  }
+  return out;
+}

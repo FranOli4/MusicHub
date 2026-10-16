@@ -227,7 +227,7 @@ export const haydn: StyleDef = {
       out.push(...repeatedChords(ctx, 'strings', { step, floor: 55, count: 2, v: sleep ? 0.18 : 0.2, gate: 0.97 }));
       out.push(...sustain(ctx, 'strings', 60, 0.08, 2));
     }
-    if (ctx.has('cello')) out.push(...bassLine(ctx, 'cello', { low: 36, step: sleep ? 0 : slow ? 2 : 1, v: 0.4, gate: 0.92 }));
+    if (ctx.has('cello')) out.push(...bassLine(ctx, 'cello', { low: 36, step: sleep ? 0 : slow ? 2 : 1, v: sleep ? 0.25 : 0.4, gate: 0.92 }));
     return out;
   },
 };

@@ -95,7 +95,7 @@ export async function createInstrument(id: InstrumentId, out: Tone.InputNode, sp
     case 'violin':
       return sampler(await loadSet('violin'), out, { attack: sleep ? 0.15 : 0.06, release: sleep ? 1 : 0.7 }, -7);
     case 'cello':
-      return sampler(await loadSet('cello'), out, { attack: sleep ? 0.2 : 0.12, release: 1.2 }, -6);
+      return sampler(await loadSet('cello'), out, { attack: sleep ? 0.2 : 0.12, release: 1.2 }, sleep ? -13 : -6);
     case 'bass':
       return sampler(await loadSet('contrabass'), out, { attack: sleep ? 0.08 : 0.02, release: 0.6 }, -3);
     case 'harp':
@@ -111,7 +111,7 @@ export async function createInstrument(id: InstrumentId, out: Tone.InputNode, sp
       // A section sound from violin + cello samples: slow bow attack, chorus for ensemble width.
       const [violin, cello] = await Promise.all([loadSet('violin'), loadSet('cello')]);
       const urls = new Map<string, Tone.ToneAudioBuffer>();
-      for (const [n, b] of cello) if (Tone.Frequency(n).toMidi() < 60) urls.set(n, b);
+      for (const [n, b] of cello) if (Tone.Frequency(n).toMidi() < (sleep ? 55 : 60)) urls.set(n, b);
       for (const [n, b] of violin) if (Tone.Frequency(n).toMidi() >= 60) urls.set(n, b);
       const chorus = new Tone.Chorus({ frequency: 0.6, delayTime: 4, depth: 0.5, wet: 0.35 }).start().connect(out);
       const inst = sampler(urls, chorus, { attack: sleep ? 0.7 : 0.45, release: 2 }, -11);

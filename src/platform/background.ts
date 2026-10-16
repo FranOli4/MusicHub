@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { ambienceLabel } from '../engine/ambience';
 import { player } from '../engine/player';
 
 // Keeps playback alive and controllable when the screen is off:
@@ -20,6 +21,7 @@ export function initBackground(actions: BackgroundActions): void {
   const session = typeof navigator !== 'undefined' ? navigator.mediaSession : undefined;
   if (session) {
     session.setActionHandler('play', () => void player.resume());
+    // Pause and stop silence everything, including ambience playing on alone overnight.
     session.setActionHandler('pause', () => player.pause());
     session.setActionHandler('stop', () => player.pause());
     session.setActionHandler('nexttrack', () => actions.next());
@@ -40,7 +42,7 @@ export function initBackground(actions: BackgroundActions): void {
         importance: Importance.Low,
       });
       await ForegroundService.addListener('buttonClicked', ({ buttonId }) => {
-        if (buttonId === BUTTON_PLAY_PAUSE) player.toggle();
+        if (buttonId === BUTTON_PLAY_PAUSE) player.mediaToggle();
         if (buttonId === BUTTON_NEXT) actions.next();
       });
       sync();
@@ -48,15 +50,19 @@ export function initBackground(actions: BackgroundActions): void {
   }
 
   function sync() {
-    const { status, current } = player.getState();
-    const active = status === 'playing' || status === 'loading';
-    const spaceLabel = current?.space === 'sleep' ? 'Sleep' : 'Think';
+    const { status, current, ambience } = player.getState();
+    const music = status === 'playing' || status === 'loading';
+    // Ambience playing on alone (all night after the sleep timer) keeps the session and service alive.
+    const active = music || !!ambience;
+    const space = music ? current?.space : (ambience?.space ?? current?.space);
+    const spaceLabel = space === 'sleep' ? 'Sleep' : 'Think';
+    const title = !music && ambience ? ambienceLabel(ambience.kind, ambience.space) : current?.title;
 
     if (session) {
       session.playbackState = active ? 'playing' : current ? 'paused' : 'none';
-      if (current) {
+      if (title) {
         session.metadata = new MediaMetadata({
-          title: current.title,
+          title,
           artist: `MusicHub · ${spaceLabel}`,
           artwork: [{ src: `${import.meta.env.BASE_URL}icon.svg`, sizes: '512x512', type: 'image/svg+xml' }],
         });
@@ -64,13 +70,13 @@ export function initBackground(actions: BackgroundActions): void {
     }
 
     if (!service) return;
-    const key = `${active}|${current?.title}`;
+    const key = `${active}|${title}`;
     if (key === lastKey) return;
     lastKey = key;
-    if (current) {
+    if (title) {
       const options = {
         id: NOTIFICATION_ID,
-        title: current.title,
+        title,
         body: active ? `Playing · ${spaceLabel}` : `Paused · ${spaceLabel}`,
         smallIcon: 'ic_stat_music',
         silent: true,

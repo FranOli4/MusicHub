@@ -12,7 +12,8 @@ Endless Christian instrumental worship and classical music for **thinking** and 
   3. **Import** a share code or a `.musichub` file from the other device.
 - **Share without accounts:** a favourite becomes a short `MH1:…` code you can send over WhatsApp. Audio songs share as a `.musichub` file.
 
-- **Shaped by research on focus and sleep:** no words, moderate tempos, legato lines, gradual change and even loudness. Think has a *Focus level* (Deep work / Balanced / Routine tasks) and optional focus pulse and noise bed. Sleep winds down over its first half hour. See [docs/music-and-concentration.md](docs/music-and-concentration.md).
+- **Shaped by research on focus and sleep:** no words, moderate tempos, legato lines, gradual change and even loudness. Think has a *Focus level* (Deep work / Balanced / Routine tasks) and an optional focus pulse. Sleep winds down over its first half hour: slower and softer, with the melody receding and a gentle breathing-pace swell. It starts with a 45-minute timer that fades out smoothly. See [docs/music-and-concentration.md](docs/music-and-concentration.md).
+- **Ambience:** rain, river, ocean (Sleep) or soft noise under the music, or on its own. In Settings it can keep playing all night after the sleep timer stops the music.
 
 Everything works offline. Instrument samples are bundled, and favourites live on each device (IndexedDB).
 

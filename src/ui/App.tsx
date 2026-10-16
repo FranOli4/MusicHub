@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { Space } from '../recipes/schema';
+import { About } from './About';
 import { AddSong } from './AddSong';
-import { Toasts } from './common';
+import { Sheet, Toasts } from './common';
 import { enterSpace, getLastSpace, setLastSpace, usePlayer } from './controller';
 import { Favourites } from './Favourites';
 import { BackIcon, GearIcon, HeartIcon, MoonIcon, NoteIcon, PlusIcon, SunIcon } from './icons';
@@ -48,7 +49,7 @@ export function App() {
         {tab === 'now' && <NowPlaying space={space} />}
         {tab === 'favourites' && <Favourites space={space} />}
         {tab === 'add' && <AddSong space={space} onAdded={() => setTab('favourites')} />}
-        {tab === 'settings' && <Settings space={space} />}
+        {tab === 'settings' && <Settings />}
       </main>
 
       <nav className="tabs" aria-label="Sections">
@@ -74,6 +75,7 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
 function Home({ onOpen }: { onOpen: (s: Space) => void }) {
   const { status, current } = usePlayer();
   const playingIn = status === 'playing' ? current?.space : null;
+  const [about, setAbout] = useState(false);
   return (
     <div className="home">
       <div className="home-head">
@@ -92,6 +94,12 @@ function Home({ onOpen }: { onOpen: (s: Space) => void }) {
         <span className="tile-hint">Slow, soft music to rest and fall asleep</span>
         {playingIn === 'sleep' && <span className="tile-live">Playing</span>}
       </button>
+      <button className="btn ghost small home-about" onClick={() => setAbout(true)}>About MusicHub</button>
+      {about && (
+        <Sheet title="About MusicHub" onClose={() => setAbout(false)}>
+          <About />
+        </Sheet>
+      )}
     </div>
   );
 }

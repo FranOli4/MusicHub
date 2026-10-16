@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import type { AmbienceChoice } from '../engine/ambience';
 import { player, type Playable } from '../engine/player';
 import { newSong, type StyleChoice } from '../engine/styles';
 import type { FocusLevel, Song } from '../engine/types';
@@ -33,25 +34,33 @@ export interface SpaceSettings {
   focus: FocusLevel;
   /** Think: subtle beta-range amplitude modulation. */
   pulse: boolean;
-  /** Quiet noise bed under the music. */
-  noise: boolean;
+  /** Steady nature sound or noise under the music (or on its own). */
+  ambience: AmbienceChoice;
+  /** Sleep: ambience keeps playing all night after the sleep timer stops the music. */
+  keepAmbience: boolean;
 }
 
 const DEFAULTS: Record<Space, SpaceSettings> = {
-  think: { style: 'mix', minutes: 20, shuffle: true, focus: 'balanced', pulse: false, noise: false },
-  sleep: { style: 'mix', minutes: 30, shuffle: true, focus: 'balanced', pulse: false, noise: false },
+  think: { style: 'mix', minutes: 20, shuffle: true, focus: 'balanced', pulse: false, ambience: 'off', keepAmbience: false },
+  sleep: { style: 'mix', minutes: 30, shuffle: true, focus: 'balanced', pulse: false, ambience: 'off', keepAmbience: false },
 };
 
+/** Older versions stored a "noise bed" checkbox; it is now the noise ambience. */
+export function migrateSettings(stored: SpaceSettings & { noise?: boolean }): SpaceSettings {
+  const { noise, ...rest } = stored;
+  return noise && rest.ambience === 'off' ? { ...rest, ambience: 'noise' } : rest;
+}
+
 function applyProfile(space: Space) {
-  const { focus, pulse, noise } = getSettings(space);
-  player.setProfile(space, { focus, pulse, noise });
+  const { focus, pulse, ambience, keepAmbience } = getSettings(space);
+  player.setProfile(space, { focus, pulse, ambience, keepAmbience });
 }
 
 const settingsListeners = new Set<() => void>();
 const settingsCache: Partial<Record<Space, SpaceSettings>> = {};
 
 export function getSettings(space: Space): SpaceSettings {
-  return (settingsCache[space] ??= load(`mh.settings.${space}`, DEFAULTS[space]));
+  return (settingsCache[space] ??= migrateSettings(load(`mh.settings.${space}`, DEFAULTS[space])));
 }
 
 export function updateSettings(space: Space, patch: Partial<SpaceSettings>) {
@@ -134,6 +143,14 @@ export async function enterSpace(space: Space) {
     const last = await lastPlayable(space);
     await (last ? player.play(last, { fade: 4 }) : playNew(space));
   }
+}
+
+/** Pick an ambience: it follows the music if this space is playing, or plays on its own. */
+export async function chooseAmbience(space: Space, ambience: AmbienceChoice) {
+  // Applies live (including "off") when this space's music or ambience is already sounding.
+  updateSettings(space, { ambience });
+  const { status, current } = player.getState();
+  if (ambience !== 'off' && !(current?.space === space && status === 'playing')) await player.startAmbience(space);
 }
 
 export async function playAllFavourites(space: Space, startWith = 0) {

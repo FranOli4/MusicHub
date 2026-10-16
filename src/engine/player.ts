@@ -1,7 +1,8 @@
 import * as Tone from 'tone';
 import type { Space } from '../recipes/schema';
+import { Ambience, type AmbienceChoice, type AmbienceKind } from './ambience';
 import type { FocusLevel, Song } from './types';
-import { AudioLoopVoice, fadeIn, GeneratedVoice, type LoopSettings, type Voice } from './voices';
+import { AudioLoopVoice, fadeIn, GeneratedVoice, WIND_DOWN_SECONDS, type LoopSettings, type Voice } from './voices';
 
 export type Playable =
   | { kind: 'generated'; title: string; space: Space; song: Song; songId?: string }
@@ -19,8 +20,11 @@ export interface PlayerState {
   status: 'idle' | 'loading' | 'playing' | 'paused';
   current: Playable | null;
   volume: number;
-  /** Epoch ms when the sleep timer ends playback. */
+  /** Epoch ms when the sleep timer ends playback, and the length it was set to. */
   sleepEndsAt: number | null;
+  sleepMinutes: number | null;
+  /** Ambience sounding now (with or without music). */
+  ambience: { kind: AmbienceKind; space: Space } | null;
   rotation: Rotation | null;
   error: string | null;
 }
@@ -31,32 +35,40 @@ export interface PlaybackProfile {
   focus: FocusLevel;
   /** Think only: subtle 16 Hz amplitude modulation (beta range). */
   pulse: boolean;
-  /** Quiet noise bed under the music: pink in Think, brown in Sleep. */
-  noise: boolean;
+  /** Steady nature sound or noise under (or instead of) the music. */
+  ambience: AmbienceChoice;
+  /** Sleep only: when the sleep timer ends, the music stops but the ambience plays on. */
+  keepAmbience: boolean;
 }
 
-const DEFAULT_PROFILE: PlaybackProfile = { focus: 'balanced', pulse: false, noise: false };
+const DEFAULT_PROFILE: PlaybackProfile = { focus: 'balanced', pulse: false, ambience: 'off', keepAmbience: false };
 
 /** A slow fade to silence at the end of the sleep timer (capped at half the timer). */
-const SLEEP_FADE_SECONDS = 300;
+const SLEEP_FADE_SECONDS = 600;
+/** Sleep music starts with this timer when none is set (trials played music for 30–45 minutes). */
+export const DEFAULT_SLEEP_MINUTES = 45;
+/** Breathing swell: about 6 a minute, easing to about 5 as the wind-down completes. */
+const BREATH_HZ = [0.1, 0.08] as const;
+/** About ±1.5 dB around unity, so switching it off leaves the level unchanged. */
+const BREATH_DEPTH = 0.17;
 /** A sleep session (for the wind-down) survives song changes and pauses shorter than this. */
 const SLEEP_SESSION_GAP_MS = 15 * 60_000;
 const PULSE_HZ = 16;
 /** Gain after the leveller and pulse; calibrated so overall loudness matches the previous mix. */
 const MAKEUP_DB = 14;
 const PULSE_DEPTH = 0.2;
-/** Noise bed gain per colour, measured to sit about 18 dB under the music (brown is denser). */
-const NOISE_DB = { pink: -30, brown: -34 };
 
 class Player {
-  private state: PlayerState = { status: 'idle', current: null, volume: 0.8, sleepEndsAt: null, rotation: null, error: null };
+  private state: PlayerState = {
+    status: 'idle', current: null, volume: 0.8, sleepEndsAt: null, sleepMinutes: null, ambience: null, rotation: null, error: null,
+  };
   private listeners = new Set<() => void>();
   private master: Tone.Gain | null = null;
   private sleepGain: Tone.Gain | null = null;
   private pulse: Tone.Tremolo | null = null;
-  private noise: Tone.Noise | null = null;
-  private noiseGain: Tone.Gain | null = null;
-  private noiseStop: ReturnType<typeof setTimeout> | null = null;
+  private breath: Tone.LFO | null = null;
+  private ambienceVolume: Tone.Gain | null = null;
+  private ambience: Ambience | null = null;
   private profiles: Record<Space, PlaybackProfile> = { think: DEFAULT_PROFILE, sleep: DEFAULT_PROFILE };
   private sleepSessionStart: number | null = null;
   private lastActive = 0;
@@ -94,10 +106,13 @@ class Player {
     this.pulse = new Tone.Tremolo({ frequency: PULSE_HZ, depth: 0, spread: 0, type: 'sine' }).start();
     // Tone's Tremolo idles at half gain (it swings 0.5 ± depth/2), so +6 dB of the makeup undoes that.
     const makeup = new Tone.Gain(Tone.dbToGain(MAKEUP_DB));
+    // Sleep's breathing swell comes after the leveller, which would otherwise flatten it.
+    const breath = new Tone.Gain(1);
+    this.breath = new Tone.LFO({ frequency: BREATH_HZ[0], min: 1 - BREATH_DEPTH, max: 1 + BREATH_DEPTH, amplitude: 0 }).connect(breath.gain).start();
     const limiter = new Tone.Limiter(-1.5);
-    this.master.chain(this.sleepGain, leveller, this.pulse, makeup, limiter);
-    // The noise bed joins at the master, so volume, the sleep fade and the leveller apply to it too.
-    this.noiseGain = new Tone.Gain(0).connect(this.master);
+    this.master.chain(this.sleepGain, leveller, this.pulse, breath, makeup, limiter);
+    // Ambience has its own path past the sleep fade and leveller, so it can play on alone at a steady level.
+    this.ambienceVolume = new Tone.Gain(this.state.volume).connect(limiter);
     try {
       const raw = Tone.getContext().rawContext as AudioContext;
       const dest = raw.createMediaStreamDestination();
@@ -116,6 +131,7 @@ class Player {
   async play(item: Playable, opts: { fade?: number; keepRotation?: boolean; resume?: number } = {}): Promise<void> {
     const req = ++this.request;
     const fade = opts.fade ?? 2.5;
+    const wasPlaying = this.state.status === 'playing' || this.state.status === 'loading';
     this.set({
       status: 'loading',
       current: item,
@@ -139,28 +155,48 @@ class Player {
       const at = Tone.now() + 0.15;
       voice.start(at);
       fadeIn(voice, at, fade);
-      this.applyAids(item.space);
+      this.applyAids(item.space, sessionElapsed);
+      if (item.space === 'sleep' && !wasPlaying && !this.state.sleepEndsAt) this.setSleepTimer(DEFAULT_SLEEP_MINUTES);
       this.set({ status: 'playing' });
     } catch (e) {
       if (req === this.request) this.set({ status: 'idle', error: (e as Error).message });
     }
   }
 
-  pause(fade = 1.5): void {
+  /** Pause the music, and the ambience too unless `keepAmbience`. */
+  pause(fade = 1.5, opts: { keepAmbience?: boolean } = {}): void {
+    if (!opts.keepAmbience) this.setAmbience(null, 'think', fade);
     if (!this.voice) return;
     this.request++;
     this.resumeAt = this.voice.position();
     this.voice.stop(fade);
     this.voice = null;
-    this.setNoise(null, fade);
     this.set({ status: 'paused' });
-    // Let the device rest while paused (matters overnight after the sleep timer).
+    // Let the device rest while paused (matters overnight after the sleep timer), unless ambience plays on.
     const req = this.request;
     setTimeout(() => {
-      if (req !== this.request || this.state.status !== 'paused') return;
+      if (req !== this.request || this.state.status !== 'paused' || this.ambience) return;
       this.mediaEl?.pause();
       void (Tone.getContext().rawContext as AudioContext).suspend?.();
     }, (fade + 1) * 1000);
+  }
+
+  /** Play a space's chosen ambience on its own, without music. */
+  async startAmbience(space: Space): Promise<void> {
+    const kind = this.profiles[space].ambience;
+    if (kind === 'off') return;
+    await this.graph();
+    this.setAmbience(kind, space, 3);
+  }
+
+  stopAmbience(fade = 2): void {
+    this.setAmbience(null, 'think', fade);
+  }
+
+  /** Media keys and the notification: whatever is sounding stops; otherwise the music resumes. */
+  mediaToggle(): void {
+    if (this.state.status === 'playing' || this.state.status === 'loading' || this.ambience) this.pause();
+    else void this.resume();
   }
 
   /** Update details of the current item (e.g. its id once it has been favourited). */
@@ -182,6 +218,7 @@ class Player {
 
   setVolume(volume: number): void {
     this.master?.gain.rampTo(volume, 0.1);
+    this.ambienceVolume?.gain.rampTo(volume, 0.1);
     this.set({ volume });
   }
 
@@ -189,7 +226,7 @@ class Player {
   setSleepTimer(minutes: number | null): void {
     this.cancelSleepFade();
     this.sleepTimerSeconds = (minutes ?? 0) * 60;
-    this.set({ sleepEndsAt: minutes ? Date.now() + minutes * 60_000 : null });
+    this.set({ sleepEndsAt: minutes ? Date.now() + minutes * 60_000 : null, sleepMinutes: minutes || null });
   }
 
   /** Play favourites one after another (shuffled or in order), switching every `minutes`. */
@@ -221,14 +258,18 @@ class Player {
       const remaining = (sleepEndsAt - now) / 1000;
       const fadeLength = Math.min(SLEEP_FADE_SECONDS, this.sleepTimerSeconds / 2 || SLEEP_FADE_SECONDS);
       if (remaining <= fadeLength && !this.sleepFading && this.sleepGain) {
+        // Even in decibels, so it sounds like a steady fade rather than a late drop.
         this.sleepFading = true;
-        this.sleepGain.gain.cancelScheduledValues(Tone.now());
-        this.sleepGain.gain.rampTo(0, Math.max(1, remaining));
+        const g = this.sleepGain.gain;
+        const t = Tone.now();
+        g.cancelScheduledValues(t);
+        g.setValueAtTime(Math.max(1e-3, g.value), t);
+        g.exponentialRampToValueAtTime(Tone.dbToGain(-60), t + Math.max(1, remaining));
       }
       if (remaining <= 0) {
-        // Already silent: stop instantly, then restore the gain for next time.
-        this.pause(0.05);
-        this.set({ sleepEndsAt: null });
+        // Already silent: stop instantly, then restore the gain for next time. Ambience may play on all night.
+        this.pause(0.05, { keepAmbience: this.profiles.sleep.keepAmbience });
+        this.set({ sleepEndsAt: null, sleepMinutes: null });
         setTimeout(() => this.cancelSleepFade(), 1000);
       }
     }
@@ -253,46 +294,61 @@ class Player {
   setProfile(space: Space, profile: PlaybackProfile): void {
     const before = this.profiles[space];
     this.profiles[space] = profile;
-    const { current, status } = this.state;
-    if (current?.space !== space || status !== 'playing') return;
-    this.applyAids(space);
+    const { current, status, ambience } = this.state;
+    if (current?.space !== space || status !== 'playing') {
+      // Ambience playing on its own follows its space's choice.
+      if (ambience?.space === space) this.setAmbience(profile.ambience === 'off' ? null : profile.ambience, space, 2);
+      return;
+    }
+    this.applyAids(space, this.sleepElapsed());
     if (profile.focus !== before.focus && current.kind === 'generated' && this.voice) {
       // Same song, new tempo and texture: pick up at the current bar.
       void this.play(current, { keepRotation: true, resume: this.voice.position(), fade: 3 });
     }
   }
 
-  private applyAids(space: Space): void {
-    const profile = this.profiles[space];
-    this.pulse?.depth.rampTo(space === 'think' && profile.pulse ? PULSE_DEPTH : 0, 1.5);
-    this.setNoise(profile.noise ? (space === 'sleep' ? 'brown' : 'pink') : null, 2);
+  /** Seconds into the current sleep session, without starting one. */
+  private sleepElapsed(): number {
+    return this.sleepSessionStart === null ? 0 : (Date.now() - this.sleepSessionStart) / 1000;
   }
 
-  private setNoise(type: 'pink' | 'brown' | null, fade: number): void {
-    if (!this.noiseGain) return;
-    if (this.noiseStop) clearTimeout(this.noiseStop);
-    this.noiseStop = null;
-    if (!type) {
-      this.noiseGain.gain.rampTo(0, Math.max(0.1, fade));
-      this.noiseStop = setTimeout(() => {
-        this.noise?.stop();
-      }, (fade + 0.5) * 1000);
-      return;
+  private applyAids(space: Space, sleepElapsed: number): void {
+    const profile = this.profiles[space];
+    this.pulse?.depth.rampTo(space === 'think' && profile.pulse ? PULSE_DEPTH : 0, 1.5);
+    if (this.breath) {
+      // Sleep only: about 6 swells a minute, slowing towards 5 over the wind-down.
+      this.breath.amplitude.rampTo(space === 'sleep' ? 1 : 0, 2);
+      const progress = Math.min(1, sleepElapsed / WIND_DOWN_SECONDS);
+      const f = this.breath.frequency;
+      const t = Tone.now();
+      f.cancelScheduledValues(t);
+      f.setValueAtTime(BREATH_HZ[0] + (BREATH_HZ[1] - BREATH_HZ[0]) * progress, t);
+      if (progress < 1) f.linearRampToValueAtTime(BREATH_HZ[1], t + (1 - progress) * WIND_DOWN_SECONDS);
     }
-    if (!this.noise) {
-      // Brown noise is already dark; pink gets a soft lowpass so it sounds like distant air, not hiss.
-      const filter = new Tone.Filter({ frequency: 2500, type: 'lowpass', rolloff: -12 }).connect(this.noiseGain);
-      this.noise = new Tone.Noise(type).connect(filter);
+    this.setAmbience(profile.ambience === 'off' ? null : profile.ambience, space, 2);
+  }
+
+  private setAmbience(kind: AmbienceKind | null, space: Space, fade: number): void {
+    const playing = this.ambience;
+    if (playing && kind && playing.kind === kind && playing.space === space) return;
+    playing?.stop(fade);
+    this.ambience = null;
+    if (kind && this.ambienceVolume) {
+      this.ambience = new Ambience(kind, space);
+      this.ambience.output.connect(this.ambienceVolume);
+      this.ambience.start(fade);
     }
-    this.noise.type = type;
-    if (this.noise.state !== 'started') this.noise.start();
-    this.noiseGain.gain.rampTo(Tone.dbToGain(NOISE_DB[type]), Math.max(0.1, fade));
+    this.set({ ambience: this.ambience ? { kind: this.ambience.kind, space } : null });
   }
 
   private cancelSleepFade(): void {
     this.sleepFading = false;
-    this.sleepGain?.gain.cancelScheduledValues(Tone.now());
-    this.sleepGain?.gain.rampTo(1, 0.5);
+    const g = this.sleepGain?.gain;
+    if (!g) return;
+    const t = Tone.now();
+    g.cancelScheduledValues(t);
+    g.setValueAtTime(g.value, t);
+    g.linearRampToValueAtTime(1, t + 0.5);
   }
 }
 

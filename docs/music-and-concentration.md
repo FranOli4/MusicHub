@@ -59,18 +59,60 @@ Liking tends to follow an inverted U: music that is too simple bores, and music 
 | Binaural beats | One meta-analysis found g ≈ 0.45, mostly when listened to *before* the task (Garcia-Argibay et al., 2019). Later reviews and studies are contradictory (Robison et al., 2022; Ingendoh et al., 2023). | Weak or mixed; marketing-heavy |
 | White or pink noise | Small benefits for children with ADHD (Söderlund et al., 2007 onwards); sometimes harmful for others. Nothing specific to brown noise. | Weak to moderate, ADHD only |
 
-**What it means for us:** an optional **Focus pulse** (16 Hz, shallow, Think only) and an optional **Soft noise bed**. Both are off by default and described honestly in Settings. No binaural beats.
+**What it means for us:** an optional **Focus pulse** (16 Hz, shallow, Think only) in Settings, and optional pink noise or nature sounds under Ambience (§9). Both are off by default and described honestly. No binaural beats.
 
 ## 7. Sleep
 
+### 7.1 Music helps, especially liked music, played nightly
+
 - A Cochrane review of 13 randomised trials (n = 1,007) found that music improved self-rated sleep quality by about one standard deviation (PSQI −2.79), with moderate certainty. Evidence for falling asleep sooner and sleeping longer is thinner, about 3 trials each (Jespersen et al., 2022).
-- Studies typically used instrumental music at 60–80 BPM: soft, smooth, simple, with no accents or percussion, for 30–45 minutes.
-- Arousal follows tempo. A short silent pause after music lowered heart rate and breathing *below* baseline (Bernardi, Porta & Sleight, 2006), which supports ending with a slow fade to silence.
-- The music people actually choose for sleep is legato, mid-register and low in rhythmic activity, but not always slow (Dickson & Schubert, 2020). A study of 225,000 Spotify sleep tracks found them softer, slower and more acoustic (Scarratt et al., 2023).
-- Continuous noise as a sleep aid: very low-quality evidence (Riedy et al., 2021).
+- Students who listened to relaxing classical music at bedtime for three weeks slept better than those who listened to audiobooks or nothing (Harmat, Takács & Bódizs, 2008). Older adults improved with 45 minutes of soft music at 60–80 BPM nightly (Lai & Good, 2005).
+- Studies typically used instrumental music: soft, smooth, simple, with no accents or percussion, for 30–45 minutes. Benefits grew over weeks of nightly use *(secondhand)*.
+- People choose sleep music they like and find familiar, and say it works by relaxing them and distracting them from thoughts (Trahan et al., 2018). The music they choose is legato, mid-register and low in rhythmic activity, but not always slow (Dickson & Schubert, 2020). A study of 225,000 Spotify sleep tracks found them softer, slower and more acoustic (Scarratt et al., 2023).
 
 **Evidence: moderate.**
-**What it means for us:** slow tempos, soft attacks, a dark tone, very small dynamic swings, and a **wind-down** over the first 30 minutes (gradually slower, sparser, softer and darker). The sleep timer fades out over 5 minutes.
+**What it means for us:** Sleep offers the styles you love, Mozart and Vivaldi among them, as slow movements: a Romanze, a Largo, an Aria. All of them are soft, legato and mid-register. The sleep timer defaults to 45 minutes, the length used in the trials.
+
+### 7.2 Lead arousal down gradually (the iso principle)
+
+Music therapists "meet" the listener's current state and then move the music gradually towards the target state (Altshuler, 1948; Heiderscheit & Madson, 2015). Tempo raises or lowers arousal (§3), but heart rate follows the beat only loosely (Koelsch & Jäncke, 2015). The aim is calming, not locking the heartbeat to the music.
+
+**Evidence: weak to moderate** (mostly clinical practice and theory).
+**What it means for us:** the wind-down slows Sleep by up to 15% over the first 30 minutes, too gradually to notice from bar to bar.
+
+### 7.3 Breath-length swells
+
+- Music with phrases of about 10 seconds (for example Verdi's *Va pensiero*, Bach–Gounod's *Ave Maria*) drew heart rate, blood pressure and breathing into step with its swells at about 0.1 Hz. Crescendos raised arousal and decrescendos lowered it (Bernardi et al., 2009).
+- Breathing at about 6 breaths a minute (0.1 Hz) is the "resonance" rate that most strengthens heart-rate variability and vagal tone (Lehrer & Gevirtz, 2014).
+- A short silent pause after music lowered heart rate and breathing *below* baseline (Bernardi, Porta & Sleight, 2006).
+
+**Evidence: weak to moderate** for music; **moderate** for slow breathing itself.
+**What it means for us:** a very shallow (about ±1.5 dB) **breathing swell** in Sleep, about 6 a minute, easing towards 5 over the wind-down. It is too subtle to "conduct" breathing, but it makes the music ebb at a restful pace. The timer ends in silence.
+
+### 7.4 Earworms keep you awake
+
+More bedtime music listening went with more night-time earworms (tunes replaying in the mind), and earworms went with worse sleep. In the experimental part, *instrumental* versions of catchy songs caused more earworms than the versions with lyrics, and earworms showed up in the sleep EEG (Scullin, Gao & Fillmore, 2021).
+
+**Evidence: moderate** (one strong study with an experimental part).
+**What it means for us:** as Sleep winds down, the tune gets sparser and softer, and after 30 minutes every other phrase leaves it out. The bed and harmony carry on. Familiar hymn tunes and themes are quoted only in the first 15 minutes. After that, fresh melody is played over the same chords.
+
+### 7.5 Changes in the sound are what wake you
+
+Sounds rouse a sleeper mostly by how far and how fast they rise above the background. Intermittent events matter more than steady sound at the same average level (WHO Night Noise Guidelines, 2009; Basner et al., 2014).
+
+**Evidence: strong.**
+**What it means for us:** the onsets of accompaniment (pizzicato, broken chords, repeated chords) halve once Sleep is halfway wound down, with the notes held longer so no gaps open. The music stops on a timer rather than playing all night. Steady ambience can raise the background (§9).
+
+### 7.6 How to fade out
+
+Perceived loudness follows decibels, not raw gain. A fade that is linear in gain sounds as if it barely changes, then drops away at the end.
+
+**What it means for us:** the sleep timer fades out evenly in decibels (to −60 dB) over up to 10 minutes, capped at half the timer.
+
+### 7.7 Not adopted
+
+- **Phase-locked pink noise** boosted deep sleep in older adults (Papalambros et al., 2017), but it needs EEG to time each burst to the brain's slow waves.
+- **Binaural or "delta" beats for sleep:** weak, contradictory evidence, much of it commercial.
 
 ## 8. Tone colour
 
@@ -78,39 +120,66 @@ The psychoacoustic model of annoyance rises with loudness, sharpness (weight in 
 
 **What it means for us:** a gentle top-end roll-off in Think, a much darker tone in Sleep, a slow master leveller and limiter so loudness stays even, and no high, piercing lead lines.
 
+## 9. Ambience: nature sounds and noise
+
+- A meta-analysis found that natural sounds lowered stress and annoyance and improved mood. Water sounds had the strongest effect on positive feelings and health (Buxton et al., 2021).
+- After a stressful task, people recovered faster with nature sounds than with traffic noise (Alvarsson, Wiens & Nilsson, 2010). Natural soundscapes shifted the body towards rest and attention outwards (Gould van Praag et al., 2017).
+- Steady broadband noise shortened time to fall asleep in a noisy setting (Messineo et al., 2017) *(secondhand figure: about 38% faster)*. Overall the evidence that continuous noise improves sleep is very low quality (Riedy et al., 2021). It helps most where there are disruptive sounds to mask.
+- Infant sound machines can exceed recommended noise levels when placed close and turned up (Hugh et al., 2014).
+- With no melody, ambience can't become an earworm (§7.4).
+
+**Evidence: moderate** for relaxation; **weak** for sleep itself.
+**What it means for us:** an **Ambience** choice under the music or on its own: rain, river, ocean (Sleep) or noise (pink in Think, brown in Sleep). Every sound is steady and soft at the top. The rain patter is fine enough to fuse into texture, and the ocean swells about every 10 seconds, near the breathing pace. It sits about 15–18 dB under the music. **Keep ambience playing all night** (Settings) lets it carry on after the sleep timer, to mask night-time sounds. **For parents:** keep it quiet enough that you still hear your child, or use a baby monitor.
+
 ## What the generator does now
 
 | Finding | Think | Sleep | Code |
 | --- | --- | --- | --- |
-| No lyrics | Instrumental only; famous hymn tunes are quoted rarely | Instrumental; hymn tunes welcome | `styles/worship.ts` |
-| Tempo × loudness | Classical 58–108 BPM (Schubert 58–72, Handel 64–84, Bach 66–88, Haydn 72–100, Vivaldi 84–104, Mozart 84–112), worship 58–82 BPM; Focus level ×0.88 / ×1 / ×1.1 | 40–60 BPM, slowing up to 8% over 30 min | `styles/*`, `composer.ts`, `voices.ts` |
-| Changing state | Legato overlap, longer bass and continuo gates, eighth notes instead of sixteenths in Deep work | Long notes, slow attacks | `composer.ts`, `instruments.ts` |
+| No lyrics | Instrumental only; famous hymn tunes are quoted rarely | Instrumental; hymn tunes quoted only in the first 15 min | `styles/worship.ts`, `styles/common.ts` |
+| Tempo × loudness | Classical 58–108 BPM (Schubert 58–72, Handel 64–84, Bach 66–88, Haydn 72–100, Vivaldi 84–104, Mozart 84–112), worship 58–82 BPM; Focus level ×0.88 / ×1 / ×1.1 | 40–60 BPM, slowing up to 15% over 30 min (iso principle) | `styles/*`, `composer.ts`, `voices.ts` |
+| Changing state | Legato overlap, longer bass and continuo gates, eighth notes instead of sixteenths in Deep work | Long notes, slow attacks; accompaniment onsets halve once half wound down | `composer.ts`, `instruments.ts`, `styles/common.ts` |
 | Segmentation | A sustained bed layer is never dropped | Same | `StyleDef.bed` |
 | Gradual change | Layers fade in and out over 2 bars; dynamics drift smoothly from bar to bar | Narrower swings | `composer.ts` |
 | Predictable melody | Mostly steps; leaps resolve; leaps capped at 4 scale steps | Leaps capped at 2 | `melody.ts` |
+| Earworms | — | The tune thins and softens over the wind-down, then leaves alternate phrases | `composer.ts` (`lead`), `styles/common.ts` |
 | Habituation | New "chapter" every few minutes: related key and fresh motifs; chapter 0 is always the original tune | Fresh motifs about every 10 min, home key | `composer.ts` |
+| Breathing pace | — | ±1.5 dB swell at 0.1 Hz easing to 0.08 Hz, after the leveller | `player.ts` |
 | Brightness | Lowpass ≤ about 9 kHz plus −3 dB high shelf; reverb about 2–3 s | Lowpass 1.4–4.4 kHz, darkening over 30 min; reverb 3–6 s | `voices.ts` |
 | Even loudness | Per-style trims measured in the browser (styles within about 1.5 dB of each other), then a slow master leveller and limiter | About 2–3 dB quieter, from its softer playing | `voices.ts`, `player.ts` |
-| Arousal by task | Focus level: Deep work / Balanced / Routine tasks | — | Settings |
-| Beta-range modulation | Optional Focus pulse, 16 Hz | — | `player.ts` |
-| Noise | Optional pink-noise bed about 18 dB under the music | Optional brown-noise bed, same level | `player.ts` |
-| Fade to silence | — | 5-minute sleep-timer fade | `player.ts` |
+| Arousal by task | Focus level: Deep work / Balanced / Routine tasks | — | Playing screen |
+| Beta-range modulation | Optional Focus pulse, 16 Hz | — | `player.ts`, Settings |
+| Ambience | Rain, river or pink noise, about 15–18 dB under the music | Rain, river, ocean or brown noise; can play on all night | `ambience.ts`, `player.ts` |
+| Stopping | — | 45-min timer by default; fades evenly in dB over up to 10 min | `player.ts` |
 
 ## Sources
 
+- Altshuler (1948). The past, present and future of musical therapy. In *Music in Medicine*.
+- Alvarsson, Wiens & Nilsson (2010). *International Journal of Environmental Research and Public Health* 7:1036–1046.
+- Basner et al. (2014). Auditory and non-auditory effects of noise on health. *The Lancet* 383:1325–1332.
+- Bernardi et al. (2009). *Circulation* 119:3171–3180.
 - Bernardi, Porta & Sleight (2006). *Heart* 92:445.
+- Buxton et al. (2021). *PNAS* 118(14).
 - Chmiel & Schubert (2017). *Psychology of Music*.
 - Dickson & Schubert (2020). *Musicae Scientiae*.
 - Furnham & Bradley (1997). *Applied Cognitive Psychology*.
 - Garcia-Argibay, Santed & Reales (2019). *Psychological Research* 83:357–372.
 - Gonzalez & Aiello (2019). *Journal of Experimental Psychology: Applied*.
+- Gould van Praag et al. (2017). *Scientific Reports* 7:45273.
+- Harmat, Takács & Bódizs (2008). *Journal of Advanced Nursing* 62:327–335.
+- Heiderscheit & Madson (2015). *Music Therapy Perspectives*.
+- Hugh et al. (2014). *Pediatrics* 133:677–681.
 - Husain, Thompson & Schellenberg (2002). *Music Perception*.
 - Ingendoh et al. (2023). *PLOS ONE*.
 - Jespersen et al. (2022). *Cochrane Database of Systematic Reviews*, CD010459.
 - Jones & Macken (1993). *JEP: Learning, Memory, and Cognition*.
 - Jones, Macken & Murray (1993). *Memory & Cognition*.
-- Kämpfe, Sedlmeier & Renkewitz (2011). *Psychology of Music* 39:298–311.
 - Kiss & Linnell (2021, *Psychological Research*; 2023, *Psychology of Music*; 2024, *Scientific Reports*).
+- Koelsch & Jäncke (2015). *European Heart Journal* 36:3043–3049.
+- Kämpfe, Sedlmeier & Renkewitz (2011). *Psychology of Music* 39:298–311.
+- Lai & Good (2005). *Journal of Advanced Nursing* 49:234–244.
+- Lehrer & Gevirtz (2014). *Frontiers in Psychology* 5:756.
+- Messineo et al. (2017). *Frontiers in Neurology* 8:718.
+- Papalambros et al. (2017). *Frontiers in Human Neuroscience* 11:109.
 - Perham & Currie (2014). *Applied Cognitive Psychology*.
 - Pietschnig, Voracek & Formann (2010). *Intelligence*.
 - Rauscher, Shaw & Ky (1993). *Nature* 365:611.
@@ -119,8 +188,11 @@ The psychoacoustic model of annoyance rises with loudness, sharpness (weight in 
 - Salamé & Baddeley (1989). *Quarterly Journal of Experimental Psychology*.
 - Scarratt et al. (2023). *PLOS ONE*.
 - Schlittmeier, Hellbrück et al. (2008, 2012).
+- Scullin, Gao & Fillmore (2021). *Psychological Science* 32:985–997.
 - Söderlund, Sikström & Smart (2007). *Journal of Child Psychology and Psychiatry*.
 - Thompson, Schellenberg & Husain (2001). *Psychological Science*.
 - Thompson, Schellenberg & Letnic (2012). *Psychology of Music* 40:700–708.
+- Trahan et al. (2018). *PLOS ONE* 13:e0206531.
 - Vasilev, Kirkby & Angele (2018). *Perspectives on Psychological Science*.
 - Woods et al. (2024). *Communications Biology* 7. doi:10.1038/s42003-024-07026-3.
+- World Health Organization (2009). *Night Noise Guidelines for Europe*.

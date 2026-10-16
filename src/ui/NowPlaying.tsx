@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
+import { ambienceLabel, SPACE_AMBIENCE } from '../engine/ambience';
 import { effectiveTempo } from '../engine/composer';
 import { player, type Playable } from '../engine/player';
 import type { FocusLevel } from '../engine/types';
@@ -8,11 +9,11 @@ import { db } from '../library/db';
 import { favourite, unfavourite } from '../library/library';
 import type { Space } from '../recipes/schema';
 import { minutesLeft, toast, useNow } from './common';
-import { next, playNew, playOrPause, updateSettings, usePlayer, useSettings } from './controller';
+import { chooseAmbience, next, playNew, playOrPause, updateSettings, usePlayer, useSettings } from './controller';
 import { FOCUS_INFO, FocusPicker } from './FocusPicker';
 import { HeartIcon, NextIcon, PauseIcon, PlayIcon, SparkIcon } from './icons';
 
-const SLEEP_TIMERS = [15, 30, 60, 90];
+const SLEEP_TIMERS = [15, 30, 45, 60, 90];
 
 function describe(item: Playable, focus: FocusLevel): string {
   if (item.kind === 'audio') return 'Your audio · looping';
@@ -30,6 +31,8 @@ export function NowPlaying({ space }: { space: Space }) {
   const row = useLiveQuery(() => (mine?.songId ? db.songs.get(mine.songId) : undefined), [mine?.songId]);
   const isFav = row?.favourite === 1;
   const rotation = mine ? state.rotation : null;
+  /** Ambience playing on its own in this space (e.g. all night after the sleep timer). */
+  const ambienceOnly = !playing && state.ambience?.space === space ? state.ambience : null;
 
   const toggleFavourite = async () => {
     if (!mine || busy) return;
@@ -96,6 +99,13 @@ export function NowPlaying({ space }: { space: Space }) {
         </div>
       )}
 
+      {ambienceOnly && (
+        <div className="banner">
+          <span>{ambienceLabel(ambienceOnly.kind, space)} is playing on its own</span>
+          <button className="btn ghost small" onClick={() => player.stopAmbience()}>Stop</button>
+        </div>
+      )}
+
       {state.error && mine && <p className="error">Couldn’t play: {state.error}</p>}
 
       <div className="block">
@@ -130,13 +140,25 @@ export function NowPlaying({ space }: { space: Space }) {
           <div className="chips">
             <button className={`chip ${!state.sleepEndsAt ? 'on' : ''}`} onClick={() => player.setSleepTimer(null)}>Off</button>
             {SLEEP_TIMERS.map((m) => (
-              <button key={m} className="chip" onClick={() => (player.setSleepTimer(m), toast(`Music will fade out in ${m} minutes`))}>
+              <button key={m} className={`chip ${state.sleepEndsAt && state.sleepMinutes === m ? 'on' : ''}`} onClick={() => (player.setSleepTimer(m), toast(`Music will fade out in ${m} minutes`))}>
                 {m} min
               </button>
             ))}
           </div>
         </div>
       )}
+
+      <div className="block">
+        <div className="label">Ambience</div>
+        <div className="chips">
+          <button className={`chip ${settings.ambience === 'off' ? 'on' : ''}`} onClick={() => void chooseAmbience(space, 'off')}>Off</button>
+          {SPACE_AMBIENCE[space].map((a) => (
+            <button key={a} className={`chip ${settings.ambience === a ? 'on' : ''}`} onClick={() => void chooseAmbience(space, a)}>
+              {ambienceLabel(a, space)}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <label className="block volume">
         <span className="label">Volume</span>

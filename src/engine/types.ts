@@ -63,6 +63,8 @@ export interface Variation {
   layers: Set<InstrumentId>;
   /** A thinned-out "breathing" pass. */
   breath: boolean;
+  /** The tune plays this phrase (Sleep leaves it out of alternate phrases once wound down). */
+  lead: boolean;
   /** Melody is developed (sequenced/inverted) rather than stated plainly. */
   develop: boolean;
 }

@@ -55,17 +55,28 @@ export interface FigureOptions {
   gate?: number;
 }
 
+/**
+ * Sleep thins accompaniment once it is halfway wound down: every other note goes and the rest
+ * last twice as long, so there are fewer separate onsets to rouse a light sleeper.
+ */
+function thinning(ctx: PhraseContext): number {
+  return ctx.recipe.space === 'sleep' && ctx.variation.windDown >= 0.5 ? 2 : 1;
+}
+
 /** Broken-chord figures: arpeggios, Alberti bass, violin figuration. */
 export function figure(ctx: PhraseContext, i: InstrumentId, o: FigureOptions): NoteEvent[] {
   const out: NoteEvent[] = [];
+  const thin = thinning(ctx);
+  const step = o.step * thin;
   for (const { chord, at, len } of ctx.chords) {
     const triad = chord.pcs.slice(0, Math.min(chord.pcs.length, 4));
     const notes = closeVoicing(triad, o.floor, o.span ?? triad.length + 1);
     let k = 0;
-    for (let t = at; t < at + len - 1e-6; t += o.step, k++) {
+    for (let t = at; t < at + len - 1e-6; t += step, k++) {
       const idx = o.pattern[k % o.pattern.length] % notes.length;
       const accent = Math.abs((t - at) % 1) < 1e-6 ? 1 : 0.85;
-      out.push({ t, d: o.step * (o.gate ?? 0.9), m: notes[idx], v: o.v * accent, i });
+      const span = thin > 1 ? Math.min(step, at + len - t) : step;
+      out.push({ t, d: span * (o.gate ?? 0.9), m: notes[idx], v: o.v * accent, i });
     }
   }
   return out;
@@ -74,13 +85,16 @@ export function figure(ctx: PhraseContext, i: InstrumentId, o: FigureOptions): N
 /** Block chords repeated every `step` beats (classical accompaniment, continuo). */
 export function repeatedChords(ctx: PhraseContext, i: InstrumentId, o: { step: number; floor: number; count: number; v: number; gate?: number }): NoteEvent[] {
   const out: NoteEvent[] = [];
+  const thin = thinning(ctx);
+  const step = o.step * thin;
   let prev: number[] | null = null;
   for (const { chord, at, len } of ctx.chords) {
     const voicing = voiceLead(chord.pcs, prev, o.floor + 6, o.count);
     prev = voicing;
-    for (let t = at; t < at + len - 1e-6; t += o.step) {
+    for (let t = at; t < at + len - 1e-6; t += step) {
       const strong = Math.abs((t - at) % ctx.meter) < 1e-6;
-      for (const m of voicing) out.push({ t, d: o.step * (o.gate ?? 0.5), m, v: o.v * (strong ? 1 : 0.8), i });
+      const span = thin > 1 ? Math.min(step, at + len - t) : step;
+      for (const m of voicing) out.push({ t, d: span * (o.gate ?? 0.5), m, v: o.v * (strong ? 1 : 0.8), i });
     }
   }
   return out;
@@ -102,6 +116,11 @@ export function melody(ctx: PhraseContext, i: InstrumentId, o: MelodyFor): NoteE
   const chapterPart = ctx.variation.chapter % 3;
   const motifRng = chapterPart ? Rng.from(ctx.seed, 'motif', ctx.section, 'chapter', chapterPart) : Rng.from(ctx.seed, 'motif', ctx.section);
   const sleep = ctx.recipe.space === 'sleep';
+  // As Sleep winds down the tune recedes (sparser, softer, sometimes absent), so it is less likely
+  // to stick as an earworm (docs/music-and-concentration.md §7).
+  if (!ctx.variation.lead) return [];
+  const windDown = sleep ? ctx.variation.windDown : 0;
+  o = { ...o, rest: sleep ? Math.min(0.7, o.rest + 0.35 * windDown) : o.rest, v: o.v * (1 - 0.3 * windDown) };
   // Sleep lines stay narrow and mid-register: small leaps, nothing above B5.
   const maxLeap = sleep ? Math.min(2, o.maxLeap ?? 3) : (o.maxLeap ?? 3);
   const motif: Motif = ctx.recipe.motif ?? makeMotif(motifRng, ctx.meter === 3 ? o.rhythms3 : o.rhythms4, maxLeap);
@@ -111,7 +130,8 @@ export function melody(ctx: PhraseContext, i: InstrumentId, o: MelodyFor): NoteE
   const generated = generateMelody(ctx, motif, ctx.rng, opts);
 
   const theme = ctx.recipe.theme ? THEMES[ctx.recipe.theme] : null;
-  if (theme && theme.section === ctx.section && theme.meter === ctx.meter && !ctx.variation.develop) {
+  // A familiar hymn or theme is quoted early in the night, not all night long.
+  if (theme && theme.section === ctx.section && theme.meter === ctx.meter && !ctx.variation.develop && windDown < 0.5) {
     const tonic = nearestPitch(ctx.keyPc, opts.center - 3);
     const quoted: NoteEvent[] = [];
     let t = 0;

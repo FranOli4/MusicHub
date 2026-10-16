@@ -13,7 +13,7 @@ const STYLE_GUIDE = `Styles (pick one for "style"):
 
 const SPACE_GUIDE: Record<Space, string> = {
   think: `This song is for THINKING / FOCUS: steady and pleasant, never distracting. Tempo 60–120 BPM, density 0.4–0.8, brightness 0.4–0.75, reverb 0.3–0.6.`,
-  sleep: `This song is for SLEEPING: very calm, soft and warm, no sudden changes. Tempo 40–60 BPM, density 0.1–0.4, brightness 0.1–0.35, reverb 0.6–0.9.`,
+  sleep: `This song is for SLEEPING: very calm, soft and warm, no sudden changes, simple rather than catchy melodies, no plucked or sudden accents. Tempo 40–60 BPM, density 0.1–0.4, brightness 0.1–0.35, reverb 0.6–0.9.`,
 };
 
 const EXAMPLE = `{

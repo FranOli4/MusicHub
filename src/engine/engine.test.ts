@@ -113,10 +113,10 @@ describe('focus and sleep shaping', () => {
   const isLead = (style: (typeof STYLE_IDS)[number], e: NoteEvent, section: string) =>
     e.i === LEAD[style] && (LEAD[style] !== 'piano' || (e.m >= 62 && e.v > 0.32)) && !(style === 'vivaldi' && section !== 'A');
 
-  function stats(space: (typeof SPACES)[number], style: (typeof STYLE_IDS)[number], focus: 'deep' | 'balanced' | 'routine') {
-    let onsets = 0, lead = 0, secs = 0, near = 0, moves = 0, top = 0, gap = 0;
+  function stats(space: (typeof SPACES)[number], style: (typeof STYLE_IDS)[number], focus: 'deep' | 'balanced' | 'routine', windDown = 0) {
+    let onsets = 0, lead = 0, accomp = 0, secs = 0, near = 0, moves = 0, top = 0, gap = 0;
     for (const seed of [1, 99, 2024]) {
-      const c = new Composer(newSong(space, style, seed), { focus });
+      const c = new Composer(newSong(space, style, seed), { focus, windDown: () => windDown });
       const beat = c.barSeconds / c.recipe.meter;
       let prev: number | null = null;
       let covered = 0;
@@ -126,6 +126,7 @@ describe('focus and sleep shaping', () => {
         onsets += new Set(bar.events.map((e) => Math.round(e.t * 100))).size;
         const tune = bar.events.filter((e) => isLead(style, e, bar.section));
         lead += new Set(tune.map((e) => Math.round(e.t * 100))).size;
+        accomp += new Set(bar.events.filter((e) => !tune.includes(e)).map((e) => `${e.i}${Math.round(e.t * 100)}`)).size;
         for (const e of tune) {
           top = Math.max(top, e.m);
           if (prev !== null) {
@@ -141,7 +142,7 @@ describe('focus and sleep shaping', () => {
         }
       }
     }
-    return { onsetsPerSec: onsets / secs, leadPerSec: lead / secs, conjunct: moves ? near / moves : 1, top, gap };
+    return { onsetsPerSec: onsets / secs, leadPerSec: lead / secs, accompPerSec: accomp / secs, conjunct: moves ? near / moves : 1, top, gap };
   }
 
   for (const style of STYLE_IDS) {
@@ -158,11 +159,20 @@ describe('focus and sleep shaping', () => {
     });
 
     it(`${style}: calm Sleep texture`, () => {
-      const s = stats('sleep', style, 'balanced');
-      expect(s.onsetsPerSec).toBeLessThanOrEqual(1.2);
-      expect(s.leadPerSec).toBeLessThanOrEqual(0.8);
-      expect(s.top).toBeLessThanOrEqual(84);
-      expect(s.gap).toBeLessThanOrEqual(0.5);
+      for (const windDown of [0, 1]) {
+        const s = stats('sleep', style, 'balanced', windDown);
+        expect(s.onsetsPerSec, `wind-down ${windDown} onsets/s`).toBeLessThanOrEqual(1.2);
+        expect(s.leadPerSec, `wind-down ${windDown} melody notes/s`).toBeLessThanOrEqual(0.8);
+        expect(s.top).toBeLessThanOrEqual(84);
+        expect(s.gap, `wind-down ${windDown} longest silence (s)`).toBeLessThanOrEqual(0.5);
+      }
+    });
+
+    it(`${style}: Sleep melody and accompaniment recede as it winds down`, () => {
+      const fresh = stats('sleep', style, 'balanced', 0);
+      const late = stats('sleep', style, 'balanced', 1);
+      expect(late.leadPerSec, 'melody notes/s').toBeLessThanOrEqual(fresh.leadPerSec * 0.7);
+      expect(late.accompPerSec, 'accompaniment onsets/s').toBeLessThanOrEqual(fresh.accompPerSec);
     });
 
     it(`${style}: never drops its sustained bed`, () => {
@@ -248,7 +258,37 @@ describe('focus and sleep shaping', () => {
     expect(late.variation(3, 0).density).toBeLessThan(fresh.variation(3, 0).density);
     expect(late.dynamicAt(100)).toBeLessThan(fresh.dynamicAt(100));
     expect(late.barSecondsAt(100)).toBeGreaterThan(fresh.barSecondsAt(100));
+    expect(late.barSecondsAt(100) / fresh.barSecondsAt(100)).toBeCloseTo(1.15, 5);
     const count = (c: Composer) => Array.from({ length: 64 }, (_, n) => c.bar(n).events.length).reduce((a, b) => a + b, 0);
     expect(count(late)).toBeLessThanOrEqual(count(fresh));
+  });
+
+  it('leaves the tune out of alternate phrases once Sleep has wound down, never the bed', () => {
+    const song = newSong('sleep', 'adagio', 6);
+    const late = new Composer(song, { windDown: () => 1 });
+    const fresh = new Composer(song, { windDown: () => 0 });
+    const leads = Array.from({ length: 12 }, (_, cycle) => late.variation(cycle, 0).lead);
+    expect(leads).toContain(true);
+    expect(leads).toContain(false);
+    for (let cycle = 0; cycle < 12; cycle++) {
+      expect(fresh.variation(cycle, 0).lead).toBe(true);
+      expect(late.variation(cycle, 0).layers.has(STYLES.adagio.bed)).toBe(true);
+    }
+    expect(new Composer(newSong('think', 'mozart', 6), { windDown: () => 1 }).variation(1, 0).lead).toBe(true);
+  });
+
+  it('quotes a hymn tune early in the night only', () => {
+    const song = newSong('sleep', 'worship-piano', 1);
+    song.recipe = {
+      ...song.recipe, theme: 'hymn-to-joy', key: 'C', meter: 4, form: 'AABA',
+      sections: [
+        { name: 'A', progression: ['I', 'V7', 'I', 'I V', 'I', 'V7', 'I', 'V I'] },
+        { name: 'B', progression: ['V I', 'V I', 'V', 'I V', 'I', 'V7', 'I', 'V I'] },
+      ],
+    };
+    const opening = (w: number) =>
+      new Composer(song, { windDown: () => w }).bar(0).events.filter((e) => e.i === 'piano' && e.m >= 64 && Number.isInteger(e.t)).map((e) => e.m % 12);
+    expect(opening(0).slice(0, 4)).toEqual([4, 4, 5, 7]); // E E F G
+    expect(opening(0.6).slice(0, 4)).not.toEqual([4, 4, 5, 7]);
   });
 });

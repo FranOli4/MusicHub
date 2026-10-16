@@ -13,8 +13,8 @@ const FOCUS_DENSITY: Record<FocusLevel, number> = { deep: -0.15, balanced: 0, ro
 const CHAPTER_SECONDS = { think: 300, sleep: 600 };
 /** Think chapters visit IV and V and always come home in between. */
 const CHAPTER_KEYS = [0, 5, 0, 7];
-/** Sleep slows by up to this fraction as the wind-down completes. */
-const WIND_DOWN_SLOWING = 0.08;
+/** Sleep slows by up to this fraction as the wind-down completes (iso principle: lead down gradually). */
+const WIND_DOWN_SLOWING = 0.15;
 /** Instruments whose notes are bowed or sustained, so they can overlap slightly (legato). */
 const SUSTAINED = new Set<InstrumentId>(['violin', 'strings', 'cello', 'pad', 'organ']);
 
@@ -161,6 +161,8 @@ export class Composer {
       register: 0,
       layers,
       breath,
+      // Once Sleep has wound down, every other phrase leaves the tune out: fewer hooks to become earworms.
+      lead: !(sleep && windDown >= 1 && (cycle + formPos) % 2 === 1),
       develop: cycle % 3 === 2,
     };
   }

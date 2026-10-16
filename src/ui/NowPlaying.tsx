@@ -8,7 +8,7 @@ import { songStyleLabel, SPACE_STYLES, styleLabel, type StyleChoice } from '../e
 import { db } from '../library/db';
 import { favourite, unfavourite } from '../library/library';
 import type { Space } from '../recipes/schema';
-import { minutesLeft, toast, useNow } from './common';
+import { copyText, minutesLeft, toast, useNow } from './common';
 import { chooseAmbience, next, playNew, playOrPause, updateSettings, usePlayer, useSettings } from './controller';
 import { FOCUS_INFO, FocusPicker } from './FocusPicker';
 import { HeartIcon, NextIcon, PauseIcon, PlayIcon } from './icons';
@@ -19,6 +19,31 @@ function describe(item: Playable, focus: FocusLevel): string {
   if (item.kind === 'audio') return 'Your audio · looping';
   const r = item.song.recipe;
   return `${songStyleLabel(r.style, item.space)} · ${r.key} ${r.scale} · ${Math.round(effectiveTempo(r, focus))} BPM`;
+}
+
+function clockText(seconds: number): string {
+  const s = Math.floor(seconds);
+  const mmss = `${Math.floor((s % 3600) / 60)}`.padStart(s >= 3600 ? 2 : 1, '0') + `:${`${s % 60}`.padStart(2, '0')}`;
+  return s >= 3600 ? `${Math.floor(s / 3600)}:${mmss}` : mmss;
+}
+
+/** How long this song has played, with its seed and bar, so a moment can be reported and replayed. */
+function SongClock({ item, focus }: { item: Playable; focus: FocusLevel }) {
+  useNow(1000);
+  const time = clockText(player.songSeconds());
+  const bar = player.songBar();
+  const seed = item.kind === 'generated' ? item.song.seed : null;
+  const copy = async () => {
+    const parts = [`“${item.title}”`, time];
+    if (seed !== null) parts.push(`seed ${seed}`, `bar ${bar}`, item.space === 'think' ? `${focus} focus` : 'sleep');
+    toast((await copyText(parts.join(' · '))) ? 'Copied song, time and seed' : 'Couldn’t copy');
+  };
+  return (
+    <button className="song-clock" onClick={() => void copy()} aria-label={`Played for ${time}. Copy song details`}>
+      <span>{time}</span>
+      {seed !== null && <span>seed {seed} · bar {bar}</span>}
+    </button>
+  );
 }
 
 export function NowPlaying({ space }: { space: Space }) {
@@ -76,6 +101,7 @@ export function NowPlaying({ space }: { space: Space }) {
               ? describe(mine, settings.focus)
               : 'Press play for music that never ends'}
         </p>
+        {mine && state.status !== 'loading' && <SongClock item={mine} focus={settings.focus} />}
       </div>
 
       <div className="transport">

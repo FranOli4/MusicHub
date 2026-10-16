@@ -225,6 +225,8 @@ select { padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); b
 .now-text { text-align: center; min-height: 72px; }
 .title { font-family: var(--serif); font-weight: 500; font-size: clamp(24px, 6vw, 32px); line-height: 1.2; }
 .subtitle { margin: 6px 0 0; color: var(--muted); }
+.song-clock { display: inline-flex; gap: 10px; margin-top: 6px; padding: 2px 8px; border: 0; border-radius: 8px; background: none; color: var(--muted); font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; opacity: 0.8; }
+.song-clock span:first-child { color: var(--text); }
 .transport { display: flex; align-items: center; gap: 28px; }
 .play-btn {
   display: grid;

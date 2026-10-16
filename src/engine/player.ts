@@ -79,6 +79,9 @@ class Player {
   private request = 0;
   private sleepFading = false;
   private clock: ReturnType<typeof setInterval> | null = null;
+  /** Time the current song has sounded: ms banked before the current run, and when that run began. */
+  private songPlayedMs = 0;
+  private songRunStart: number | null = null;
 
   getState = (): PlayerState => this.state;
 
@@ -132,6 +135,7 @@ class Player {
     const req = ++this.request;
     const fade = opts.fade ?? 2.5;
     const wasPlaying = this.state.status === 'playing' || this.state.status === 'loading';
+    this.bankSongTime();
     this.set({
       status: 'loading',
       current: item,
@@ -155,6 +159,9 @@ class Player {
       const at = Tone.now() + 0.15;
       voice.start(at);
       fadeIn(voice, at, fade);
+      // Resuming (or re-voicing at a new focus) carries on the same song's clock.
+      if (opts.resume === undefined) this.songPlayedMs = 0;
+      this.songRunStart = Date.now();
       this.applyAids(item.space, sessionElapsed);
       if (item.space === 'sleep' && !wasPlaying && !this.state.sleepEndsAt && !this.sleepTimerOff) this.setSleepTimer(DEFAULT_SLEEP_MINUTES);
       this.set({ status: 'playing' });
@@ -169,6 +176,7 @@ class Player {
     if (!this.voice) return;
     this.request++;
     this.resumeAt = this.voice.position();
+    this.bankSongTime();
     this.voice.stop(fade);
     this.voice = null;
     this.set({ status: 'paused' });
@@ -197,6 +205,23 @@ class Player {
   mediaToggle(): void {
     if (this.state.status === 'playing' || this.state.status === 'loading' || this.ambience) this.pause();
     else void this.resume();
+  }
+
+  /** Seconds the current song has been playing, not counting pauses. */
+  songSeconds(): number {
+    const run = this.songRunStart === null ? 0 : Date.now() - this.songRunStart;
+    return (this.songPlayedMs + run) / 1000;
+  }
+
+  /** Bar of the current generated song sounding now (or where it paused), counted from 0. */
+  songBar(): number | null {
+    if (this.state.current?.kind !== 'generated') return null;
+    return Math.max(0, (this.voice ? this.voice.position() : this.resumeAt) - 1);
+  }
+
+  private bankSongTime(): void {
+    if (this.songRunStart !== null) this.songPlayedMs += Date.now() - this.songRunStart;
+    this.songRunStart = null;
   }
 
   /** Update details of the current item (e.g. its id once it has been favourited). */

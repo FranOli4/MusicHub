@@ -20,9 +20,7 @@ export function ambienceLabel(kind: AmbienceKind, space: Space): string {
 }
 
 /** Output level per sound, measured in the browser to sit about 15–18 dB under typical music. */
-const LEVEL_DB: Record<AmbienceKind, number> = { rain: -12, river: -16.5, ocean: -11.5, noise: -15.5 };
-/** Peak level of the rain patter relative to the wash. */
-const PATTER = 0.5;
+const LEVEL_DB: Record<AmbienceKind, number> = { rain: -12, river: -11, ocean: -11.5, noise: -15.5 };
 
 export class Ambience {
   readonly output = new Tone.Gain(0);
@@ -50,24 +48,62 @@ export class Ambience {
     return node;
   }
 
-  /** A steady wash plus a fine patter that fuses into texture rather than separate drops. */
+  /**
+   * Three layers: a deep distant wash, a mid "sheet of rain" hiss, and many tiny individual
+   * droplets (random timing, pitch and level) that give it the pattering realism of real rain.
+   * Sleep keeps the droplets softer, darker and gentler-onset so they don't startle.
+   */
   private rain(out: Tone.InputNode) {
-    const top = this.space === 'sleep' ? 3000 : 5000;
+    const sleep = this.space === 'sleep';
+    const top = sleep ? 3500 : 6500;
     const drift = this.add(new Tone.Gain(1)).connect(out);
-    this.add(new Tone.LFO({ frequency: 0.047, min: Tone.dbToGain(-1), max: Tone.dbToGain(1) })).connect(drift.gain);
-    const lowpass = this.add(new Tone.Filter({ frequency: top, type: 'lowpass', rolloff: -24 })).connect(drift);
-    const highpass = this.add(new Tone.Filter({ frequency: 300, type: 'highpass' })).connect(lowpass);
-    this.add(new Tone.Noise('pink')).connect(highpass);
+    this.add(new Tone.LFO({ frequency: 0.047, min: Tone.dbToGain(-1.5), max: Tone.dbToGain(1.5) })).connect(drift.gain);
 
-    // Patter: bright noise whose level follows a slow random signal, sharpened so it peaks only now and then.
-    const patter = this.add(new Tone.Gain(0)).connect(drift);
-    const band = this.add(new Tone.Filter({ frequency: top * 0.7, type: 'bandpass', Q: 0.8 })).connect(patter);
-    this.add(new Tone.Noise('white')).connect(band);
-    const shaper = this.add(new Tone.WaveShaper((x) => PATTER * x ** 4, 1024)).connect(patter.gain);
-    // Lowpassed white noise is very quiet (about −33 dB), so lift it into the shaper's ±1 range.
-    const lift = this.add(new Tone.Gain(25)).connect(shaper);
-    const smooth = this.add(new Tone.Filter({ frequency: 35, type: 'lowpass', rolloff: -24 })).connect(lift);
-    this.add(new Tone.Noise('white')).connect(smooth);
+    // Distant wash and low body.
+    const wash = this.add(new Tone.Filter({ frequency: top, type: 'lowpass', rolloff: -24 })).connect(drift);
+    const washHp = this.add(new Tone.Filter({ frequency: 200, type: 'highpass' })).connect(wash);
+    this.add(new Tone.Noise('pink')).connect(washHp);
+    const rumble = this.add(new Tone.Gain(0.35)).connect(drift);
+    const rumbleLp = this.add(new Tone.Filter({ frequency: 350, type: 'lowpass', rolloff: -12 })).connect(rumble);
+    this.add(new Tone.Noise('brown')).connect(rumbleLp);
+
+    // Sheet hiss: broad band of white noise whose level slowly swells and fades like gusting rain.
+    const sheet = this.add(new Tone.Gain(0.3)).connect(drift);
+    this.add(new Tone.LFO({ frequency: 0.11, min: 0.15, max: 0.45, phase: Math.random() * 360 })).connect(sheet.gain);
+    const sheetBp = this.add(new Tone.Filter({ frequency: sleep ? 2200 : 3800, type: 'bandpass', Q: 0.6 })).connect(sheet);
+    this.add(new Tone.Noise('white')).connect(sheetBp);
+
+    // Droplets: short enveloped noise bursts across a few lanes, scheduled slightly ahead.
+    const LANES = 8;
+    const lanes = Array.from({ length: LANES }, () => {
+      const env = this.add(new Tone.AmplitudeEnvelope({
+        attack: sleep ? 0.006 : 0.002, decay: 0.03, sustain: 0, release: 0.02,
+      })).connect(drift);
+      const bp = this.add(new Tone.Filter({ frequency: 3000, type: 'bandpass', Q: 1.4 })).connect(env);
+      this.add(new Tone.Noise('white')).connect(bp);
+      return { env, bp };
+    });
+    const rate = sleep ? 45 : 80; // drops per second
+    const gain = sleep ? 0.5 : 0.75;
+    const lo = sleep ? 700 : 900;
+    const hi = sleep ? 3200 : 7500;
+    const AHEAD = 0.25;
+    let next = 0;
+    let lane = 0;
+    this.timer = setInterval(() => {
+      const now = Tone.now();
+      if (next < now) next = now;
+      while (next < now + AHEAD) {
+        next += -Math.log(1 - Math.random()) / rate; // Poisson spacing
+        const l = lanes[lane++ % LANES];
+        // Pitch skewed toward the lower end; level skewed toward quiet with the odd bigger drop.
+        const f = lo * (hi / lo) ** (Math.random() ** 1.6);
+        const v = gain * Math.random() ** 2.2;
+        l.bp.frequency.setValueAtTime(f, next);
+        l.env.decay = 0.015 + Math.random() * 0.035;
+        l.env.triggerAttackRelease(0.004, next, v);
+      }
+    }, 100);
   }
 
   /** Brown noise through a few slowly wandering bands: a babbling flow. */

@@ -3,10 +3,10 @@ import { useState } from 'react';
 import { effectiveTempo } from '../engine/composer';
 import { player, type Playable } from '../engine/player';
 import type { FocusLevel } from '../engine/types';
-import { SPACE_STYLES, styleLabel } from '../engine/styles';
+import { songStyleLabel, SPACE_STYLES, styleLabel, type StyleChoice } from '../engine/styles';
 import { db } from '../library/db';
 import { favourite, unfavourite } from '../library/library';
-import type { Space, StyleId } from '../recipes/schema';
+import type { Space } from '../recipes/schema';
 import { minutesLeft, toast, useNow } from './common';
 import { next, playNew, playOrPause, updateSettings, usePlayer, useSettings } from './controller';
 import { FOCUS_INFO, FocusPicker } from './FocusPicker';
@@ -17,7 +17,7 @@ const SLEEP_TIMERS = [15, 30, 60, 90];
 function describe(item: Playable, focus: FocusLevel): string {
   if (item.kind === 'audio') return 'Your audio · looping';
   const r = item.song.recipe;
-  return `${styleLabel(r.style, item.space)} · ${r.key} ${r.scale} · ${Math.round(effectiveTempo(r, focus))} BPM`;
+  return `${songStyleLabel(r.style, item.space)} · ${r.key} ${r.scale} · ${Math.round(effectiveTempo(r, focus))} BPM`;
 }
 
 export function NowPlaying({ space }: { space: Space }) {
@@ -51,7 +51,7 @@ export function NowPlaying({ space }: { space: Space }) {
     }
   };
 
-  const chooseStyle = (style: StyleId | 'mix') => {
+  const chooseStyle = (style: StyleChoice) => {
     updateSettings(space, { style });
     void playNew(space, style);
   };

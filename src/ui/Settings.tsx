@@ -65,7 +65,7 @@ export function Settings({ space }: { space: Space }) {
             volume and a soft top end. Sleep slows, softens and darkens over its first half hour, and the timer fades out over five minutes.
           </p>
           <p>
-            Classical styles are new music written in the manner of Mozart and Vivaldi. Some songs quote public-domain melodies: NEW BRITAIN
+            Classical songs are new music written in the manner of Bach, Handel, Vivaldi, Haydn, Mozart and Schubert. Some songs quote public-domain melodies: NEW BRITAIN
             (“Amazing Grace”), Beethoven’s HYMN TO JOY (“Joyful, Joyful, We Adore Thee”) and the opening of Mozart’s <i>Eine kleine Nachtmusik</i>.
           </p>
           <p className="muted">

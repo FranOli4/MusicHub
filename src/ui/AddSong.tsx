@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { player } from '../engine/player';
 import { randomSeed } from '../engine/rng';
-import { styleLabel } from '../engine/styles';
+import { songStyleLabel } from '../engine/styles';
 import { AudioLoopVoice } from '../engine/voices';
 import { db } from '../library/db';
 import { addAudio, addRecipe, saveGenerated, toPlayable } from '../library/library';
@@ -61,7 +61,7 @@ function AskAi({ space, onAdded }: { space: Space; onAdded: () => void }) {
           className="input"
           value={wish}
           onChange={(e) => setWish(e.target.value)}
-          placeholder={space === 'sleep' ? 'e.g. a gentle Celtic hymn-like piece in D' : 'e.g. a cheerful Vivaldi-style concerto in A minor'}
+          placeholder={space === 'sleep' ? 'e.g. a gentle Celtic hymn-like piece in D' : 'e.g. a flowing Bach-style prelude in G major'}
         />
       </label>
       <div className="row">
@@ -89,7 +89,7 @@ function AskAi({ space, onAdded }: { space: Space; onAdded: () => void }) {
         <div className="preview">
           <div>
             <div className="song-title">{recipe.name}</div>
-            <div className="song-meta">{styleLabel(recipe.style, space)} · {recipe.key} {recipe.scale} · {recipe.tempo} BPM</div>
+            <div className="song-meta">{songStyleLabel(recipe.style, space)} · {recipe.key} {recipe.scale} · {recipe.tempo} BPM</div>
           </div>
           <div className="row">
             <button className="btn" onClick={() => void player.play({ kind: 'generated', title: recipe.name, space, song: { recipe, seed } })}>Preview</button>

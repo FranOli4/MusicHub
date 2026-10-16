@@ -83,7 +83,7 @@ The psychoacoustic model of annoyance rises with loudness, sharpness (weight in 
 | Finding | Think | Sleep | Code |
 | --- | --- | --- | --- |
 | No lyrics | Instrumental only; famous hymn tunes are quoted rarely | Instrumental; hymn tunes welcome | `styles/worship.ts` |
-| Tempo × loudness | Mozart 84–108, Vivaldi 84–104, worship 58–82 BPM; Focus level ×0.88 / ×1 / ×1.1 | 40–60 BPM, slowing up to 8% over 30 min | `styles/*`, `composer.ts`, `voices.ts` |
+| Tempo × loudness | Classical 58–108 BPM (Schubert 58–72, Handel 64–84, Bach 66–88, Haydn 72–100, Vivaldi 84–104, Mozart 84–112), worship 58–82 BPM; Focus level ×0.88 / ×1 / ×1.1 | 40–60 BPM, slowing up to 8% over 30 min | `styles/*`, `composer.ts`, `voices.ts` |
 | Changing state | Legato overlap, longer bass and continuo gates, eighth notes instead of sixteenths in Deep work | Long notes, slow attacks | `composer.ts`, `instruments.ts` |
 | Segmentation | A sustained bed layer is never dropped | Same | `StyleDef.bed` |
 | Gradual change | Layers fade in and out over 2 bars; dynamics drift smoothly from bar to bar | Narrower swings | `composer.ts` |

@@ -83,7 +83,7 @@ function Home({ onOpen }: { onOpen: (s: Space) => void }) {
       <button className="space-tile think" onClick={() => onOpen('think')}>
         <SunIcon width={36} height={36} />
         <span className="tile-name">Think</span>
-        <span className="tile-hint">Focus music: Mozart, Vivaldi, worship piano</span>
+        <span className="tile-hint">Focus music: worship piano and classical</span>
         {playingIn === 'think' && <span className="tile-live">Playing</span>}
       </button>
       <button className="space-tile sleep" onClick={() => onOpen('sleep')}>

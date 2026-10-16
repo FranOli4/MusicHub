@@ -28,6 +28,10 @@ const STYLE_TRIM_DB: Record<StyleId, number> = {
   'worship-ambient': 4,
   mozart: -2,
   vivaldi: -2,
+  bach: 1,
+  handel: -2,
+  haydn: 1,
+  schubert: 5,
   adagio: 1,
 };
 

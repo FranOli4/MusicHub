@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
 import { player } from '../engine/player';
-import { styleLabel } from '../engine/styles';
+import { songStyleLabel } from '../engine/styles';
 import { db, type SongRow } from '../library/db';
 import { copyToSpace, favourite, listAdded, listFavourites, removeSong, rename, toPlayable, unfavourite } from '../library/library';
 import { encodeShareCode, makeAudioBundle, shareFile } from '../library/share';
@@ -15,7 +15,7 @@ const spaceName = (s: Space) => (s === 'think' ? 'Think' : 'Sleep');
 
 function kindLabel(row: SongRow): string {
   if (row.kind === 'audio') return 'Audio file';
-  const style = row.recipe ? styleLabel(row.recipe.style, row.space) : '';
+  const style = row.recipe ? songStyleLabel(row.recipe.style, row.space) : '';
   return row.kind === 'recipe' ? `AI recipe · ${style}` : style;
 }
 

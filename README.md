@@ -4,7 +4,7 @@ Endless Christian instrumental worship and classical music for **thinking** and 
 
 - **Two spaces, Think and Sleep.** Each has its own favourites, added songs, style choices and settings. Think is bright and steady; Sleep is slow, soft and dark-screened, with a sleep timer that fades out.
 - **Songs never end.** Each song is composed live from a *recipe* (style, key, chords, form) and a *seed*. The form repeats forever, and every pass varies the density and instrument layers, and every few minutes a new chapter brings fresh motifs (and in Think a related key), so long sessions keep evolving without losing the song's identity.
-- **Styles:** worship piano, worship ambient, Mozart serenade (think *Eine kleine Nachtmusik*), Vivaldi concerto (think *The Four Seasons*), and slow movements (Romanze / Largo). Some songs quote public-domain tunes: Amazing Grace, Joyful Joyful (Hymn to Joy), and the opening of *Eine kleine Nachtmusik*.
+- **Styles:** worship piano, worship ambient, classical, and slow movements (Romanze / Largo). *Classical* picks a composer for each song: a Bach prelude, a Handel air, a Vivaldi concerto, a Haydn quartet, a Mozart serenade or a Schubert impromptu. Some songs quote public-domain tunes: Amazing Grace, Joyful Joyful (Hymn to Joy), and the opening of *Eine kleine Nachtmusik*.
 - **♥ Favourite** what's playing; play a favourite on repeat, or **Play all** to rotate through favourites every N minutes.
 - **Add songs** three ways:
   1. **Ask an AI:** copy the built-in prompt into Claude or ChatGPT, then paste the JSON reply back. No API key needed.

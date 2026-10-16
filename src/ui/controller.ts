@@ -1,10 +1,10 @@
 import { useSyncExternalStore } from 'react';
 import { player, type Playable } from '../engine/player';
-import { newSong } from '../engine/styles';
+import { newSong, type StyleChoice } from '../engine/styles';
 import type { FocusLevel, Song } from '../engine/types';
 import { db } from '../library/db';
 import { listFavourites, toPlayable } from '../library/library';
-import type { Space, StyleId } from '../recipes/schema';
+import type { Space } from '../recipes/schema';
 
 // ---------- small persisted preferences (per device) ----------
 
@@ -25,7 +25,7 @@ function save(key: string, value: unknown) {
 }
 
 export interface SpaceSettings {
-  style: StyleId | 'mix';
+  style: StyleChoice;
   /** Minutes each favourite plays in "Play all". */
   minutes: number;
   shuffle: boolean;

@@ -4,7 +4,7 @@ import { THEME_IDS } from '../engine/themes';
 export const SPACES = ['think', 'sleep'] as const;
 export type Space = (typeof SPACES)[number];
 
-export const STYLE_IDS = ['worship-piano', 'worship-ambient', 'mozart', 'vivaldi', 'adagio'] as const;
+export const STYLE_IDS = ['worship-piano', 'worship-ambient', 'mozart', 'vivaldi', 'bach', 'handel', 'haydn', 'schubert', 'adagio'] as const;
 export type StyleId = (typeof STYLE_IDS)[number];
 
 export const INSTRUMENT_IDS = [

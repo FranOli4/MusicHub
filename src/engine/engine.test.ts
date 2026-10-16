@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SPACES, STYLE_IDS, validateRecipe } from '../recipes/schema';
 import { Composer } from './composer';
-import { newSong, resolveInstruments, STYLES } from './styles';
+import { CLASSICAL_STYLES, newSong, resolveInstruments, STYLES } from './styles';
 import type { NoteEvent } from './types';
 import { parseChord } from './theory';
 
@@ -63,6 +63,18 @@ describe('composer', () => {
     }
   }
 
+  it('"Classical" picks between many composers', () => {
+    for (const space of SPACES) {
+      const seen = new Set<string>();
+      for (let seed = 1; seed <= 80; seed++) {
+        const { style } = newSong(space, 'classical', seed).recipe;
+        expect(CLASSICAL_STYLES).toContain(style);
+        seen.add(style);
+      }
+      expect(seen.size).toBeGreaterThanOrEqual(5);
+    }
+  });
+
   it('maps recipe instruments onto style roles', () => {
     const song = newSong('think', 'worship-piano', 3);
     const { roles, sound } = resolveInstruments({ ...song.recipe, instruments: ['harp', 'organ'] });
@@ -93,10 +105,13 @@ describe('composer', () => {
 
 // Targets from docs/music-and-concentration.md: steady, legato, predictable, gradual.
 describe('focus and sleep shaping', () => {
-  const LEAD = { 'worship-piano': 'piano', 'worship-ambient': 'piano', mozart: 'violin', vivaldi: 'violin', adagio: 'violin' } as const;
-  /** The tune: the lead instrument's upper, louder notes (Vivaldi's solo figuration excluded). */
+  const LEAD = {
+    'worship-piano': 'piano', 'worship-ambient': 'piano', mozart: 'violin', vivaldi: 'violin',
+    bach: 'piano', handel: 'violin', haydn: 'violin', schubert: 'piano', adagio: 'violin',
+  } as const;
+  /** The tune: the lead instrument's upper, louder notes (piano accompaniment and Vivaldi's solo figuration excluded). */
   const isLead = (style: (typeof STYLE_IDS)[number], e: NoteEvent, section: string) =>
-    e.i === LEAD[style] && (!style.startsWith('worship') || (e.m >= 62 && e.v > 0.32)) && !(style === 'vivaldi' && section !== 'A');
+    e.i === LEAD[style] && (LEAD[style] !== 'piano' || (e.m >= 62 && e.v > 0.32)) && !(style === 'vivaldi' && section !== 'A');
 
   function stats(space: (typeof SPACES)[number], style: (typeof STYLE_IDS)[number], focus: 'deep' | 'balanced' | 'routine') {
     let onsets = 0, lead = 0, secs = 0, near = 0, moves = 0, top = 0, gap = 0;

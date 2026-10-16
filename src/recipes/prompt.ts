@@ -5,6 +5,10 @@ const STYLE_GUIDE = `Styles (pick one for "style"):
 - "worship-ambient": prayerful ambient worship. Long swelling pads, very sparse piano, soft cello. Slow harmonic rhythm.
 - "mozart": Classical-era string serenade in the manner of Mozart's "Eine kleine Nachtmusik". Bright major keys, clear 8-bar periods (bar 4 ends on V, bar 8 on I), Alberti bass.
 - "vivaldi": Baroque concerto in the manner of Vivaldi's "Four Seasons". Section A is the tutti ritornello; other sections are solo-violin episodes built on circle-of-fifths sequences (e.g. i–iv–VII–III–VI–iio–V–i). Minor keys are typical.
+- "bach": Baroque keyboard prelude / aria in the manner of Bach (the C-major Prelude, the Goldberg Aria). A calm piano tune over an even broken-chord figure; descending basses and circle-of-fifths sequences.
+- "handel": stately Baroque air or largo in the manner of Handel (the Water Music air, "Ombra mai fu"). Cantabile violin over a walking continuo bass and soft organ; sus4 cadences.
+- "haydn": string-quartet andante in the manner of Haydn. First violin over legato inner voices and cello; clear periods, cadential I/5–V7–I, an occasional borrowed iv. Major keys.
+- "schubert": piano impromptu in the manner of Schubert. A singing tune over flowing triplet arpeggios; warm colour chords like bVI, iii and vi. Major keys.
 - "adagio": slow movement (Romanze / Largo). Cantabile violin over pizzicato and muted strings.`;
 
 const SPACE_GUIDE: Record<Space, string> = {
@@ -41,7 +45,7 @@ What I'd like: ${request}
 
 ${SPACE_GUIDE[space]}
 
-The music must be either Christian instrumental worship or classical (Mozart / Vivaldi style). Don't copy copyrighted songs; public-domain hymn tunes are fine as inspiration.
+The music must be either Christian instrumental worship or classical (Baroque, Classical-era or early-Romantic: Bach, Handel, Vivaldi, Haydn, Mozart, Schubert). Don't copy copyrighted songs; public-domain hymn tunes are fine as inspiration.
 
 ${STYLE_GUIDE}
 

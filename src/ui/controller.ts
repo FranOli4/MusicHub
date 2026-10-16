@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { player, type Playable } from '../engine/player';
 import { newSong } from '../engine/styles';
-import type { Song } from '../engine/types';
+import type { FocusLevel, Song } from '../engine/types';
 import { db } from '../library/db';
 import { listFavourites, toPlayable } from '../library/library';
 import type { Space, StyleId } from '../recipes/schema';
@@ -29,12 +29,23 @@ export interface SpaceSettings {
   /** Minutes each favourite plays in "Play all". */
   minutes: number;
   shuffle: boolean;
+  /** Think: how energetic the music is (deep work → routine tasks). */
+  focus: FocusLevel;
+  /** Think: subtle beta-range amplitude modulation. */
+  pulse: boolean;
+  /** Quiet noise bed under the music. */
+  noise: boolean;
 }
 
 const DEFAULTS: Record<Space, SpaceSettings> = {
-  think: { style: 'mix', minutes: 20, shuffle: true },
-  sleep: { style: 'mix', minutes: 30, shuffle: true },
+  think: { style: 'mix', minutes: 20, shuffle: true, focus: 'balanced', pulse: false, noise: false },
+  sleep: { style: 'mix', minutes: 30, shuffle: true, focus: 'balanced', pulse: false, noise: false },
 };
+
+function applyProfile(space: Space) {
+  const { focus, pulse, noise } = getSettings(space);
+  player.setProfile(space, { focus, pulse, noise });
+}
 
 const settingsListeners = new Set<() => void>();
 const settingsCache: Partial<Record<Space, SpaceSettings>> = {};
@@ -46,8 +57,12 @@ export function getSettings(space: Space): SpaceSettings {
 export function updateSettings(space: Space, patch: Partial<SpaceSettings>) {
   settingsCache[space] = { ...getSettings(space), ...patch };
   save(`mh.settings.${space}`, settingsCache[space]);
+  applyProfile(space);
   settingsListeners.forEach((fn) => fn());
 }
+
+applyProfile('think');
+applyProfile('sleep');
 
 export function useSettings(space: Space): SpaceSettings {
   return useSyncExternalStore(

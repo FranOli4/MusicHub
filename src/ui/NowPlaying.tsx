@@ -1,20 +1,23 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useState } from 'react';
+import { effectiveTempo } from '../engine/composer';
 import { player, type Playable } from '../engine/player';
+import type { FocusLevel } from '../engine/types';
 import { SPACE_STYLES, styleLabel } from '../engine/styles';
 import { db } from '../library/db';
 import { favourite, unfavourite } from '../library/library';
 import type { Space, StyleId } from '../recipes/schema';
 import { minutesLeft, toast, useNow } from './common';
 import { next, playNew, playOrPause, updateSettings, usePlayer, useSettings } from './controller';
+import { FOCUS_INFO, FocusPicker } from './FocusPicker';
 import { HeartIcon, NextIcon, PauseIcon, PlayIcon, SparkIcon } from './icons';
 
 const SLEEP_TIMERS = [15, 30, 60, 90];
 
-function describe(item: Playable): string {
+function describe(item: Playable, focus: FocusLevel): string {
   if (item.kind === 'audio') return 'Your audio · looping';
   const r = item.song.recipe;
-  return `${styleLabel(r.style, item.space)} · ${r.key} ${r.scale} · ${r.tempo} BPM`;
+  return `${styleLabel(r.style, item.space)} · ${r.key} ${r.scale} · ${Math.round(effectiveTempo(r, focus))} BPM`;
 }
 
 export function NowPlaying({ space }: { space: Space }) {
@@ -67,7 +70,7 @@ export function NowPlaying({ space }: { space: Space }) {
           {state.status === 'loading' && mine
             ? 'Tuning the strings…'
             : mine
-              ? describe(mine)
+              ? describe(mine, settings.focus)
               : 'Press play for music that never ends'}
         </p>
       </div>
@@ -111,6 +114,13 @@ export function NowPlaying({ space }: { space: Space }) {
           <SparkIcon /> New song
         </button>
       </div>
+
+      {space === 'think' && (
+        <div className="block">
+          <div className="label">Focus level · {FOCUS_INFO[settings.focus].hint}</div>
+          <FocusPicker />
+        </div>
+      )}
 
       {space === 'sleep' && (
         <div className="block">

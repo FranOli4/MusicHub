@@ -98,11 +98,16 @@ export interface MelodyFor extends MelodyOptions {
  * A quoted theme is stated plainly; "develop" passes replace it with fresh melody over the same chords.
  */
 export function melody(ctx: PhraseContext, i: InstrumentId, o: MelodyFor): NoteEvent[] {
-  const motifRng = Rng.from(ctx.seed, 'motif', ctx.section);
-  const motif: Motif =
-    ctx.recipe.motif ?? makeMotif(motifRng, ctx.meter === 3 ? o.rhythms3 : o.rhythms4, o.maxLeap ?? 3);
+  // Chapter 0 keeps the song's original motif; later chapters cycle through two fresh ones.
+  const chapterPart = ctx.variation.chapter % 3;
+  const motifRng = chapterPart ? Rng.from(ctx.seed, 'motif', ctx.section, 'chapter', chapterPart) : Rng.from(ctx.seed, 'motif', ctx.section);
+  const sleep = ctx.recipe.space === 'sleep';
+  // Sleep lines stay narrow and mid-register: small leaps, nothing above B5.
+  const maxLeap = sleep ? Math.min(2, o.maxLeap ?? 3) : (o.maxLeap ?? 3);
+  const motif: Motif = ctx.recipe.motif ?? makeMotif(motifRng, ctx.meter === 3 ? o.rhythms3 : o.rhythms4, maxLeap);
   const shift = ctx.variation.register;
-  const opts = { ...o, low: o.low + shift, high: o.high + shift, center: o.center + shift };
+  const high = sleep ? Math.min(o.high, 83) : o.high;
+  const opts = { ...o, low: o.low + shift, high: high + shift, center: Math.min(o.center, high - 5) + shift };
   const generated = generateMelody(ctx, motif, ctx.rng, opts);
 
   const theme = ctx.recipe.theme ? THEMES[ctx.recipe.theme] : null;

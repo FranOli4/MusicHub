@@ -32,13 +32,33 @@ export interface TimedChord {
   len: number;
 }
 
+/**
+ * Arousal control for Think (see docs/music-and-concentration.md): calmer for reading and
+ * complex work, livelier for routine tasks. Changes tempo and texture, never the tune.
+ */
+export type FocusLevel = 'deep' | 'balanced' | 'routine';
+export const FOCUS_LEVELS: FocusLevel[] = ['deep', 'balanced', 'routine'];
+
+export interface ComposerOptions {
+  focus?: FocusLevel;
+  /** Sleep wind-down progress 0–1 at a given bar (slower, sparser, softer over the session). */
+  windDown?: (bar: number) => number;
+}
+
 /** How a pass through the form differs from the previous one, so endless play keeps evolving. */
 export interface Variation {
   cycle: number;
+  /** Long-form section of several cycles: brings fresh motifs and (in Think) a related key. */
+  chapter: number;
+  /** Semitones the chapter is transposed by (0, +5 or +7). */
+  transpose: number;
+  focus: FocusLevel;
+  /** Sleep wind-down progress 0–1. */
+  windDown: number;
   density: number;
   /** Overall loudness 0–1 for this phrase. */
   dynamic: number;
-  /** Semitone shift for melody register (0 or ±12). */
+  /** Semitone shift for melody register (kept at 0: octave jumps are attention-grabbing). */
   register: number;
   layers: Set<InstrumentId>;
   /** A thinned-out "breathing" pass. */
@@ -72,6 +92,8 @@ export interface StyleDef {
   /** Spaces this style is offered in for "New song". */
   spaces: Space[];
   instruments: InstrumentId[];
+  /** Sustained layer that is never dropped, so the texture never chops into silence. */
+  bed: InstrumentId;
   newRecipe(rng: Rng, space: Space): Recipe;
   /** Events for a whole phrase, `t` relative to the phrase start. */
   renderPhrase(ctx: PhraseContext): NoteEvent[];

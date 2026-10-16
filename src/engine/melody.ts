@@ -1,5 +1,5 @@
 import type { Rng } from './rng';
-import { nearestPitch, scaleNotes, snapToChord } from './theory';
+import { isChordTone, nearestPitch, scaleNotes, snapToChord, type Chord } from './theory';
 import type { PhraseContext } from './types';
 
 export interface Motif {
@@ -25,14 +25,34 @@ export interface MelodyOptions {
   rest: number;
 }
 
-/** Build a motif from a rhythm vocabulary and contour tendencies. */
+/** A chord tone near `m` (≤ 2 semitones away when possible), preferring the smoother move from `prev`. */
+function chordToneNear(m: number, prev: number, chord: Chord): number {
+  if (isChordTone(m, chord)) return m;
+  let best = snapToChord(m, chord);
+  for (let d = -2; d <= 2; d++) {
+    const n = m + d;
+    if (isChordTone(n, chord) && Math.abs(n - prev) < Math.abs(best - prev)) best = n;
+  }
+  return best;
+}
+
+/**
+ * Build a motif from a rhythm vocabulary and contour tendencies. Mostly steps and repeats
+ * (predictable, low-surprise lines), and every leap is answered by a step back the other way.
+ */
 export function makeMotif(rng: Rng, rhythms: number[][], maxLeap = 3): Motif {
   const rhythm = rng.pick(rhythms);
-  const steps = rhythm.map((_, i) => {
-    if (i === 0) return 0;
-    return rng.weighted([
-      [1, 4], [-1, 4], [0, 1.5], [2, 2], [-2, 2], [maxLeap, 0.7], [-maxLeap, 0.5],
-    ] as const);
+  const steps: number[] = [];
+  rhythm.forEach((_, i) => {
+    const prev = steps[i - 1] ?? 0;
+    if (i === 0) steps.push(0);
+    else if (Math.abs(prev) >= 3) steps.push(-Math.sign(prev));
+    else
+      steps.push(
+        rng.weighted([
+          [1, 5], [-1, 5], [0, 1.5], [2, 1.2], [-2, 1.2], [maxLeap, 0.35], [-maxLeap, 0.3],
+        ] as const),
+      );
   });
   return { steps, rhythm };
 }
@@ -56,7 +76,12 @@ export function generateMelody(ctx: PhraseContext, motif: Motif, rng: Rng, o: Me
     for (let i = 1; i < scale.length; i++) if (Math.abs(scale[i] - m) < Math.abs(scale[best] - m)) best = i;
     return best;
   };
-  const move = (m: number, steps: number) => scale[Math.min(scale.length - 1, Math.max(0, nearestIndex(m) + steps))];
+  const at = (m: number, steps: number) => scale[Math.min(scale.length - 1, Math.max(0, nearestIndex(m) + steps))];
+  /** Move by scale steps, turning back rather than wrapping an octave when the line hits its range. */
+  const move = (m: number, steps: number) => {
+    const n = at(m, steps);
+    return n > o.high || n < o.low ? at(m, -steps) : n;
+  };
   const clamp = (m: number) => {
     while (m > o.high) m -= 12;
     while (m < o.low) m += 12;
@@ -84,8 +109,10 @@ export function generateMelody(ctx: PhraseContext, motif: Motif, rng: Rng, o: Me
     let cur = unitStart;
     let t = t0;
     for (let k = 0; k < motif.rhythm.length && t < t0 + unitBeats; k++) {
+      const prev = cur;
       if (k > 0) cur = move(cur, invert ? -motif.steps[k] : motif.steps[k]);
-      if (Math.abs(t % strongEvery) < 1e-6) cur = snapToChord(cur, ctx.chordAt(t));
+      // Strong beats land on a chord tone: of the two nearest, the one closer to the previous note.
+      if (Math.abs(t % strongEvery) < 1e-6) cur = chordToneNear(cur, prev, ctx.chordAt(t));
       cur = clamp(cur);
       const isLast = k === motif.rhythm.length - 1 || t + motif.rhythm[k] >= t0 + unitBeats;
       const d = isLast ? t0 + unitBeats - t : motif.rhythm[k];
@@ -96,7 +123,7 @@ export function generateMelody(ctx: PhraseContext, motif: Motif, rng: Rng, o: Me
     }
   }
 
-  // Ornaments and rests, then a gentle dynamic arc across the phrase.
+  // Ornaments and rests, then a gentle dynamic arc across the phrase (about 3 dB, no accents).
   const out: MelNote[] = [];
   notes.forEach((n, i) => {
     const next = notes[i + 1];
@@ -115,8 +142,8 @@ export function generateMelody(ctx: PhraseContext, motif: Motif, rng: Rng, o: Me
 
   for (const n of out) {
     const arc = Math.sin(Math.PI * Math.min(1, (n.t + 0.5) / total));
-    const strong = Math.abs(n.t % meter) < 1e-6 ? 0.06 : 0;
-    n.v = Math.min(1, 0.5 + 0.25 * arc + strong + rng.range(-0.04, 0.04));
+    const strong = Math.abs(n.t % meter) < 1e-6 ? 0.04 : 0;
+    n.v = Math.min(1, 0.6 + 0.15 * arc + strong + rng.range(-0.03, 0.03));
   }
   return out;
 }

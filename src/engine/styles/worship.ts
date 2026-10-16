@@ -41,7 +41,9 @@ function worshipRecipe(rng: Rng, space: Space, style: 'worship-piano' | 'worship
   const reverb = ambient || space === 'sleep' ? rng.range(0.6, 0.85) : rng.range(0.35, 0.55);
   const key = rng.pick(MAJOR_KEYS);
 
-  if (rng.chance(ambient ? 0.15 : 0.3)) {
+  // Well-known hymn tunes can bring their words to mind, which competes with reading and writing,
+  // so Think quotes them rarely (docs/music-and-concentration.md §2).
+  if (rng.chance(space === 'think' ? 0.1 : ambient ? 0.15 : 0.3)) {
     const themeId: ThemeId = rng.pick(['amazing-grace', 'hymn-to-joy'] as const);
     const theme = THEMES[themeId];
     return buildRecipe({
@@ -80,6 +82,7 @@ export const worshipPiano: StyleDef = {
   blurb: 'Felt piano over warm pads, gentle worship chord loops',
   spaces: ['think', 'sleep'],
   instruments: ['piano', 'pad', 'strings'],
+  bed: 'pad',
   newRecipe: (rng, space) => worshipRecipe(rng, space, 'worship-piano'),
   renderPhrase(ctx: PhraseContext): NoteEvent[] {
     const { density } = ctx.variation;
@@ -93,7 +96,7 @@ export const worshipPiano: StyleDef = {
       out.push(...figure(ctx, 'piano', { pattern: [0, 2, 1, 3, 2, 1], step, floor: 53, span: 4, v: 0.28, gate: 1.6 }));
       out.push(
         ...melody(ctx, 'piano', {
-          low: 64, high: 81, center: 72, v: 0.85,
+          low: 64, high: 81, center: 72, v: sleep ? 0.85 : 0.75,
           ornament: sleep ? 0 : 0.25, rest: sleep ? 0.25 : 0.05,
           rhythms3, rhythms4: sleep ? rhythms4Sleep : rhythms4Think,
         }),
@@ -110,6 +113,7 @@ export const worshipAmbient: StyleDef = {
   blurb: 'Slow swelling pads with sparse piano — prayerful and spacious',
   spaces: ['sleep', 'think'],
   instruments: ['pad', 'piano', 'cello', 'strings'],
+  bed: 'pad',
   newRecipe: (rng, space) => worshipRecipe(rng, space, 'worship-ambient'),
   renderPhrase(ctx: PhraseContext): NoteEvent[] {
     const { density } = ctx.variation;

@@ -1,5 +1,5 @@
 import * as Tone from 'tone';
-import type { InstrumentId } from '../recipes/schema';
+import type { InstrumentId, Space } from '../recipes/schema';
 
 // Sample sets live in public/samples (fetched by scripts/fetch-samples.mjs).
 type SampleSet = 'piano' | 'violin' | 'cello' | 'contrabass' | 'harp' | 'harmonium';
@@ -83,24 +83,28 @@ function synth(out: Tone.InputNode, opts: Record<string, any>, chain: Tone.ToneA
   };
 }
 
-/** Build one instrument wired into `out`. Samples must already be preloaded. */
-export async function createInstrument(id: InstrumentId, out: Tone.InputNode): Promise<Instrument> {
+/**
+ * Build one instrument wired into `out`. Samples must already be preloaded.
+ * Sleep softens every attack: slow bows and swells, and no hard hammer or pluck onsets.
+ */
+export async function createInstrument(id: InstrumentId, out: Tone.InputNode, space: Space = 'think'): Promise<Instrument> {
+  const sleep = space === 'sleep';
   switch (id) {
     case 'piano':
-      return sampler(await loadSet('piano'), out, { release: 1.4 }, -1);
+      return sampler(await loadSet('piano'), out, { attack: sleep ? 0.025 : 0, release: 1.4 }, -1);
     case 'violin':
-      return sampler(await loadSet('violin'), out, { attack: 0.06, release: 0.7 }, -7);
+      return sampler(await loadSet('violin'), out, { attack: sleep ? 0.15 : 0.06, release: sleep ? 1 : 0.7 }, -7);
     case 'cello':
-      return sampler(await loadSet('cello'), out, { attack: 0.12, release: 1.2 }, -6);
+      return sampler(await loadSet('cello'), out, { attack: sleep ? 0.2 : 0.12, release: 1.2 }, -6);
     case 'bass':
-      return sampler(await loadSet('contrabass'), out, { release: 0.6 }, -3);
+      return sampler(await loadSet('contrabass'), out, { attack: sleep ? 0.08 : 0.02, release: 0.6 }, -3);
     case 'harp':
-      return sampler(await loadSet('harp'), out, { release: 1.6 }, -6);
+      return sampler(await loadSet('harp'), out, { attack: sleep ? 0.02 : 0, release: 1.6 }, -6);
     case 'organ':
       return sampler(await loadSet('harmonium'), out, { attack: 0.15, release: 0.9 }, -12);
     case 'pizz': {
       const filter = new Tone.Filter(2400, 'lowpass').connect(out);
-      const inst = sampler(await loadSet('harp'), filter, { release: 0.25 }, -4);
+      const inst = sampler(await loadSet('harp'), filter, { attack: sleep ? 0.03 : 0, release: sleep ? 0.5 : 0.25 }, -4);
       return { play: inst.play, dispose: () => (inst.dispose(), filter.dispose()) };
     }
     case 'strings': {
@@ -110,7 +114,7 @@ export async function createInstrument(id: InstrumentId, out: Tone.InputNode): P
       for (const [n, b] of cello) if (Tone.Frequency(n).toMidi() < 60) urls.set(n, b);
       for (const [n, b] of violin) if (Tone.Frequency(n).toMidi() >= 60) urls.set(n, b);
       const chorus = new Tone.Chorus({ frequency: 0.6, delayTime: 4, depth: 0.5, wet: 0.35 }).start().connect(out);
-      const inst = sampler(urls, chorus, { attack: 0.45, release: 2 }, -11);
+      const inst = sampler(urls, chorus, { attack: sleep ? 0.7 : 0.45, release: 2 }, -11);
       return { play: inst.play, dispose: () => (inst.dispose(), chorus.dispose()) };
     }
     case 'pad':
@@ -128,7 +132,7 @@ export async function createInstrument(id: InstrumentId, out: Tone.InputNode): P
         out,
         {
           oscillator: { type: 'pulse', width: 0.18 },
-          envelope: { attack: 0.002, decay: 1.1, sustain: 0, release: 0.35 },
+          envelope: { attack: sleep ? 0.012 : 0.004, decay: 1.1, sustain: 0, release: 0.35 },
         },
         [new Tone.Filter(180, 'highpass'), new Tone.Filter(4800, 'lowpass')],
         -20,

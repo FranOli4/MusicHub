@@ -64,9 +64,12 @@ export function parseChord(symbol: string, keyPc: number, scale: ScaleName): Cho
 }
 
 /** Split a progression bar like "IV V" into chords with their beat offsets. */
-export function parseBar(bar: string, recipe: Pick<Recipe, 'key' | 'scale' | 'meter'>): { chord: Chord; at: number; len: number }[] {
+export function parseBar(
+  bar: string,
+  recipe: Pick<Recipe, 'key' | 'scale' | 'meter'>,
+  keyPc = NOTE_PC[recipe.key],
+): { chord: Chord; at: number; len: number }[] {
   const symbols = bar.trim().split(/\s+/);
-  const keyPc = NOTE_PC[recipe.key];
   const beatsEach = recipe.meter / symbols.length;
   return symbols.map((s, i) => ({ chord: parseChord(s, keyPc, recipe.scale), at: i * beatsEach, len: beatsEach }));
 }

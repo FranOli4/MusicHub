@@ -1,9 +1,9 @@
 import * as Tone from 'tone';
-import type { InstrumentId } from '../recipes/schema';
-import { Composer } from './composer';
+import type { InstrumentId, StyleId } from '../recipes/schema';
+import { Composer, effectiveTempo } from './composer';
 import { createInstrument, preload, type Instrument } from './instruments';
 import { resolveInstruments } from './styles';
-import type { Song } from './types';
+import type { FocusLevel, Song } from './types';
 
 /** Something that plays forever into its own output gain until stopped. */
 export interface Voice {
@@ -19,67 +19,115 @@ export interface Voice {
 const lookahead = () => (typeof document !== 'undefined' && document.hidden ? 30 : 4);
 const TICK_MS = 250;
 
+/**
+ * Loudness trims per style, measured in the browser (RMS at the master input), so every style
+ * plays at about the same level. Sparse worship textures need a lift; dense string writing a cut.
+ */
+const STYLE_TRIM_DB: Record<StyleId, number> = {
+  'worship-piano': 4,
+  'worship-ambient': 4,
+  mozart: -2,
+  vivaldi: -2,
+  adagio: 1,
+};
+
+/** Sleep winds down (slower, sparser, softer, darker) over this long. */
+export const WIND_DOWN_SECONDS = 30 * 60;
+
+export interface GeneratedOptions {
+  focus?: FocusLevel;
+  /** Seconds of the current sleep session already played when this voice starts. */
+  sessionElapsed?: number;
+}
+
 export class GeneratedVoice implements Voice {
   readonly output = new Tone.Gain(0);
   private timer: ReturnType<typeof setInterval> | null = null;
   private nextBar: number;
   private nextBarTime = 0;
-  private readonly startBar: number;
-  private startTime = 0;
+  /** Recent [bar, start time] pairs, for resuming at the right bar when tempo varies. */
+  private barTimes: [number, number][] = [];
 
   private constructor(
     private readonly composer: Composer,
     private readonly instruments: Map<InstrumentId, Instrument>,
     private readonly nodes: Tone.ToneAudioNode[],
-    startBar: number,
+    private readonly filter: Tone.Filter,
+    private readonly cutoff: number,
+    private readonly windDownAt: (bar: number) => number,
+    private readonly startBar: number,
   ) {
     this.nextBar = startBar;
-    this.startBar = startBar;
   }
 
-  static async create(song: Song, destination: Tone.InputNode, startBar = 0): Promise<GeneratedVoice> {
+  static async create(song: Song, destination: Tone.InputNode, startBar = 0, opts: GeneratedOptions = {}): Promise<GeneratedVoice> {
     const { recipe } = song;
     const { roles, sound } = resolveInstruments(recipe);
     await preload(roles.map((r) => sound.get(r)!));
     const sleep = recipe.space === 'sleep';
-    const cutoff = (sleep ? 1400 : 2600) + recipe.brightness * (sleep ? 3000 : 9000);
+    // Think rolls off above ~9 kHz plus a gentle high shelf (less sharpness); Sleep is much darker.
+    const cutoff = sleep ? 1400 + recipe.brightness * 3000 : 3000 + recipe.brightness * 6000;
     const filter = new Tone.Filter({ frequency: cutoff, type: 'lowpass', rolloff: -12 });
-    const reverb = new Tone.Reverb({ decay: 2.5 + recipe.reverb * 6, wet: 0.15 + recipe.reverb * 0.45, preDelay: 0.03 });
+    const shelf = new Tone.Filter({ frequency: 4000, type: 'highshelf', gain: sleep ? 0 : -3 });
+    const reverb = new Tone.Reverb(
+      sleep
+        ? { decay: 3 + recipe.reverb * 3, wet: 0.25 + recipe.reverb * 0.45, preDelay: 0.03 }
+        : { decay: 1.8 + recipe.reverb * 2.5, wet: 0.15 + recipe.reverb * 0.4, preDelay: 0.02 },
+    );
     await reverb.ready;
     const bus = new Tone.Gain(1);
-    bus.chain(filter, reverb);
+    const trim = new Tone.Gain(Tone.dbToGain(STYLE_TRIM_DB[recipe.style]));
+    bus.chain(filter, shelf, reverb, trim);
     const instruments = new Map<InstrumentId, Instrument>();
-    for (const role of roles) instruments.set(role, await createInstrument(sound.get(role)!, bus));
-    const voice = new GeneratedVoice(new Composer(song), instruments, [bus, filter, reverb], startBar);
-    reverb.connect(voice.output);
+    for (const role of roles) instruments.set(role, await createInstrument(sound.get(role)!, bus, recipe.space));
+
+    // Wind-down progress by bar, measured from the start of the sleep session (not of this song).
+    const elapsed0 = opts.sessionElapsed ?? 0;
+    const base = (60 / effectiveTempo(recipe, opts.focus)) * recipe.meter;
+    const windDown = (bar: number) => Math.min(1, Math.max(0, (elapsed0 + (bar - startBar) * base) / WIND_DOWN_SECONDS));
+    const composer = new Composer(song, { focus: opts.focus, windDown: sleep ? windDown : undefined });
+    const voice = new GeneratedVoice(composer, instruments, [bus, filter, shelf, reverb, trim], filter, cutoff, sleep ? windDown : () => 0, startBar);
+    trim.connect(voice.output);
     voice.output.connect(destination);
     return voice;
   }
 
   start(at: number): void {
-    this.startTime = at;
     this.nextBarTime = at;
+    if (this.composer.recipe.space === 'sleep') {
+      // Darken gradually, to 70% of the cutoff by the end of the wind-down.
+      const w = this.windDownAt(this.startBar);
+      const f = this.filter.frequency;
+      f.setValueAtTime(this.cutoff * (1 - 0.3 * w), at);
+      if (w < 1) f.linearRampToValueAtTime(this.cutoff * 0.7, at + (1 - w) * WIND_DOWN_SECONDS);
+    }
     this.tick();
     this.timer = setInterval(() => this.tick(), TICK_MS);
   }
 
   private tick(): void {
     const horizon = Tone.now() + lookahead();
-    const beat = 60 / this.composer.recipe.tempo;
-    const barSeconds = this.composer.barSeconds;
+    const meter = this.composer.recipe.meter;
     while (this.nextBarTime < horizon) {
+      const barSeconds = this.composer.barSecondsAt(this.nextBar);
+      const beat = barSeconds / meter;
       const bar = this.composer.bar(this.nextBar);
       for (const e of bar.events) {
         this.instruments.get(e.i)?.play(e.m, e.d * beat, this.nextBarTime + e.t * beat, e.v);
       }
+      this.barTimes.push([this.nextBar, this.nextBarTime]);
+      if (this.barTimes.length > 64) this.barTimes.shift();
       this.nextBar++;
       this.nextBarTime += barSeconds;
     }
   }
 
+  /** The bar after the one sounding now. */
   position(): number {
-    const elapsed = Math.max(0, Tone.now() - this.startTime);
-    return this.startBar + Math.floor(elapsed / this.composer.barSeconds) + 1;
+    const now = Tone.now();
+    let bar = this.startBar - 1;
+    for (const [b, t] of this.barTimes) if (t <= now) bar = b;
+    return bar + 1;
   }
 
   stop(fade: number): void {

@@ -3,7 +3,7 @@
 Endless Christian instrumental worship and classical music for **thinking** and **sleeping**, on Windows laptops and Android (Samsung) phones.
 
 - **Two spaces, Think and Sleep.** Each has its own favourites, added songs, style choices and settings. Think is bright and steady; Sleep is slow, soft and dark-screened, with a sleep timer that fades out.
-- **Songs never end.** Each song is composed live from a *recipe* (style, key, chords, form) and a *seed*. The form repeats forever, and every pass varies the density, register and instrument layers, so long sessions keep evolving without losing the song's identity.
+- **Songs never end.** Each song is composed live from a *recipe* (style, key, chords, form) and a *seed*. The form repeats forever, and every pass varies the density and instrument layers, and every few minutes a new chapter brings fresh motifs (and in Think a related key), so long sessions keep evolving without losing the song's identity.
 - **Styles:** worship piano, worship ambient, Mozart serenade (think *Eine kleine Nachtmusik*), Vivaldi concerto (think *The Four Seasons*), and slow movements (Romanze / Largo). Some songs quote public-domain tunes: Amazing Grace, Joyful Joyful (Hymn to Joy), and the opening of *Eine kleine Nachtmusik*.
 - **♥ Favourite** what's playing; play a favourite on repeat, or **Play all** to rotate through favourites every N minutes.
 - **Add songs** three ways:
@@ -11,6 +11,8 @@ Endless Christian instrumental worship and classical music for **thinking** and 
   2. **Loop an audio file** (MP3/M4A/OGG/WAV), with a crossfade at the loop point.
   3. **Import** a share code or a `.musichub` file from the other device.
 - **Share without accounts:** a favourite becomes a short `MH1:…` code you can send over WhatsApp. Audio songs share as a `.musichub` file.
+
+- **Shaped by research on focus and sleep:** no words, moderate tempos, legato lines, gradual change and even loudness. Think has a *Focus level* (Deep work / Balanced / Routine tasks) and optional focus pulse and noise bed. Sleep winds down over its first half hour. See [docs/music-and-concentration.md](docs/music-and-concentration.md).
 
 Everything works offline. Instrument samples are bundled, and favourites live on each device (IndexedDB).
 

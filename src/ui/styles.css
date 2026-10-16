@@ -17,17 +17,18 @@
   color-scheme: dark;
 }
 
+/* Think: warm dark, clear contrast for daytime focus. */
 :root[data-space='think'] {
-  --bg: #f4eee3;
-  --bg-2: #ece3d3;
-  --surface: #fffaf2;
-  --text: #2c261e;
-  --muted: #7b6f60;
-  --accent: #a8682c;
-  --accent-text: #fffaf2;
-  --line: rgba(60, 40, 10, 0.1);
-  --danger: #b0442f;
-  color-scheme: light;
+  --bg: #17130e;
+  --bg-2: #1f1a13;
+  --surface: #262017;
+  --text: #ece4d6;
+  --muted: #a3967f;
+  --accent: #d9a560;
+  --accent-text: #1a1408;
+  --line: rgba(255, 240, 210, 0.08);
+  --danger: #e2847a;
+  color-scheme: dark;
 }
 
 /* Sleep: very dark, low contrast, nothing bright to wake you. */
@@ -197,7 +198,7 @@ select { padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); b
   transition: transform 0.2s ease;
 }
 .space-tile:active { transform: scale(0.985); }
-.space-tile.think { background: linear-gradient(140deg, #f7efe0, #e8d3ad); color: #3a2d1b; }
+.space-tile.think { background: linear-gradient(140deg, #3a2c1a, #1c160f); color: #f0dcb8; box-shadow: inset 0 0 0 1px rgba(255, 240, 210, 0.08); }
 .space-tile.sleep { background: linear-gradient(140deg, #1b2342, #0b1020); color: #b9c2de; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06); }
 .tile-name { font-family: var(--serif); font-size: 32px; margin-top: 10px; }
 .tile-hint { opacity: 0.75; }

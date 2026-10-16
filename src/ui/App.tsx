@@ -16,7 +16,7 @@ export function App() {
 
   useEffect(() => {
     document.documentElement.dataset.space = space ?? 'home';
-    const theme = space === 'think' ? '#f4eee3' : space === 'sleep' ? '#090d18' : '#0e1220';
+    const theme = space === 'think' ? '#17130e' : space === 'sleep' ? '#090d18' : '#0e1220';
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme);
   }, [space]);
 

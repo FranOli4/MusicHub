@@ -11,7 +11,7 @@ import type { Space } from '../recipes/schema';
 import { minutesLeft, toast, useNow } from './common';
 import { chooseAmbience, next, playNew, playOrPause, updateSettings, usePlayer, useSettings } from './controller';
 import { FOCUS_INFO, FocusPicker } from './FocusPicker';
-import { HeartIcon, NextIcon, PauseIcon, PlayIcon, SparkIcon } from './icons';
+import { HeartIcon, NextIcon, PauseIcon, PlayIcon } from './icons';
 
 const SLEEP_TIMERS = [15, 30, 45, 60, 90];
 
@@ -86,7 +86,7 @@ export function NowPlaying({ space }: { space: Space }) {
           {playing ? <PauseIcon width={34} height={34} /> : <PlayIcon width={34} height={34} />}
         </button>
         <button className="icon-btn" onClick={() => void next()} aria-label={rotation ? 'Next favourite' : 'New song'}>
-          {rotation ? <NextIcon /> : <SparkIcon />}
+          <NextIcon />
         </button>
       </div>
 
@@ -120,9 +120,6 @@ export function NowPlaying({ space }: { space: Space }) {
             Surprise me
           </button>
         </div>
-        <button className="btn wide" onClick={() => void playNew(space)}>
-          <SparkIcon /> New song
-        </button>
       </div>
 
       {space === 'think' && (

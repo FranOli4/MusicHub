@@ -26,7 +26,7 @@ export const SparkIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6.3 6.3l2.5 2.5M15.2 15.2l2.5 2.5M6.3 17.7l2.5-2.5M15.2 8.8l2.5-2.5" /></svg>
 );
 export const NextIcon = (p: SVGProps<SVGSVGElement>) => (
-  <svg {...base(p)}><path d="M6 6l8 6-8 6z" fill="currentColor" stroke="none" /><path d="M17.5 6v12" /></svg>
+  <svg {...base(p)}><path d="M4 6l7 6-7 6zM12 6l7 6-7 6z" fill="currentColor" stroke="none" /><path d="M20.5 6v12" /></svg>
 );
 export const BackIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}><path d="M15 5l-7 7 7 7" /></svg>

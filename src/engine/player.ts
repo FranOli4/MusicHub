@@ -37,11 +37,9 @@ export interface PlaybackProfile {
   pulse: boolean;
   /** Steady nature sound or noise under (or instead of) the music. */
   ambience: AmbienceChoice;
-  /** Sleep only: when the sleep timer ends, the music stops but the ambience plays on. */
-  keepAmbience: boolean;
 }
 
-const DEFAULT_PROFILE: PlaybackProfile = { focus: 'balanced', pulse: false, ambience: 'off', keepAmbience: false };
+const DEFAULT_PROFILE: PlaybackProfile = { focus: 'balanced', pulse: false, ambience: 'off' };
 
 /** A slow fade to silence at the end of the sleep timer (capped at half the timer). */
 const SLEEP_FADE_SECONDS = 600;
@@ -73,6 +71,8 @@ class Player {
   private sleepSessionStart: number | null = null;
   private lastActive = 0;
   private sleepTimerSeconds = 0;
+  /** The user turned the sleep timer off; playing does not start one again. */
+  private sleepTimerOff = false;
   private mediaEl: HTMLAudioElement | null = null;
   private voice: Voice | null = null;
   private resumeAt = 0;
@@ -156,16 +156,16 @@ class Player {
       voice.start(at);
       fadeIn(voice, at, fade);
       this.applyAids(item.space, sessionElapsed);
-      if (item.space === 'sleep' && !wasPlaying && !this.state.sleepEndsAt) this.setSleepTimer(DEFAULT_SLEEP_MINUTES);
+      if (item.space === 'sleep' && !wasPlaying && !this.state.sleepEndsAt && !this.sleepTimerOff) this.setSleepTimer(DEFAULT_SLEEP_MINUTES);
       this.set({ status: 'playing' });
     } catch (e) {
       if (req === this.request) this.set({ status: 'idle', error: (e as Error).message });
     }
   }
 
-  /** Pause the music, and the ambience too unless `keepAmbience`. */
-  pause(fade = 1.5, opts: { keepAmbience?: boolean } = {}): void {
-    if (!opts.keepAmbience) this.setAmbience(null, 'think', fade);
+  /** Pause the music and the ambience. */
+  pause(fade = 1.5): void {
+    this.setAmbience(null, 'think', fade);
     if (!this.voice) return;
     this.request++;
     this.resumeAt = this.voice.position();
@@ -226,6 +226,7 @@ class Player {
   setSleepTimer(minutes: number | null): void {
     this.cancelSleepFade();
     this.sleepTimerSeconds = (minutes ?? 0) * 60;
+    this.sleepTimerOff = !minutes;
     this.set({ sleepEndsAt: minutes ? Date.now() + minutes * 60_000 : null, sleepMinutes: minutes || null });
   }
 
@@ -267,8 +268,8 @@ class Player {
         g.exponentialRampToValueAtTime(Tone.dbToGain(-60), t + Math.max(1, remaining));
       }
       if (remaining <= 0) {
-        // Already silent: stop instantly, then restore the gain for next time. Ambience may play on all night.
-        this.pause(0.05, { keepAmbience: this.profiles.sleep.keepAmbience });
+        // Already silent: stop instantly (ambience too), then restore the gain for next time.
+        this.pause(0.05);
         this.set({ sleepEndsAt: null, sleepMinutes: null });
         setTimeout(() => this.cancelSleepFade(), 1000);
       }

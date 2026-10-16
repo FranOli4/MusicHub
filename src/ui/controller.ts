@@ -36,13 +36,11 @@ export interface SpaceSettings {
   pulse: boolean;
   /** Steady nature sound or noise under the music (or on its own). */
   ambience: AmbienceChoice;
-  /** Sleep: ambience keeps playing all night after the sleep timer stops the music. */
-  keepAmbience: boolean;
 }
 
 const DEFAULTS: Record<Space, SpaceSettings> = {
-  think: { style: 'mix', minutes: 20, shuffle: true, focus: 'balanced', pulse: false, ambience: 'off', keepAmbience: false },
-  sleep: { style: 'mix', minutes: 30, shuffle: true, focus: 'balanced', pulse: false, ambience: 'off', keepAmbience: false },
+  think: { style: 'mix', minutes: 20, shuffle: true, focus: 'balanced', pulse: false, ambience: 'off' },
+  sleep: { style: 'mix', minutes: 30, shuffle: true, focus: 'balanced', pulse: false, ambience: 'off' },
 };
 
 /** Older versions stored a "noise bed" checkbox; it is now the noise ambience. */
@@ -52,8 +50,8 @@ export function migrateSettings(stored: SpaceSettings & { noise?: boolean }): Sp
 }
 
 function applyProfile(space: Space) {
-  const { focus, pulse, ambience, keepAmbience } = getSettings(space);
-  player.setProfile(space, { focus, pulse, ambience, keepAmbience });
+  const { focus, pulse, ambience } = getSettings(space);
+  player.setProfile(space, { focus, pulse, ambience });
 }
 
 const settingsListeners = new Set<() => void>();

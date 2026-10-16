@@ -52,7 +52,7 @@ export function initBackground(actions: BackgroundActions): void {
   function sync() {
     const { status, current, ambience } = player.getState();
     const music = status === 'playing' || status === 'loading';
-    // Ambience playing on alone (all night after the sleep timer) keeps the session and service alive.
+    // Ambience started on its own keeps the session and service alive.
     const active = music || !!ambience;
     const space = music ? current?.space : (ambience?.space ?? current?.space);
     const spaceLabel = space === 'sleep' ? 'Sleep' : 'Think';

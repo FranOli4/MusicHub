@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { migrateSettings, type SpaceSettings } from './controller';
 
 describe('settings', () => {
-  const base: SpaceSettings = { style: 'mix', minutes: 30, shuffle: true, focus: 'balanced', pulse: false, ambience: 'off', keepAmbience: false };
+  const base: SpaceSettings = { style: 'mix', minutes: 30, shuffle: true, focus: 'balanced', pulse: false, ambience: 'off' };
 
   it('turns the old noise-bed checkbox into the noise ambience', () => {
     expect(migrateSettings({ ...base, noise: true })).toEqual({ ...base, ambience: 'noise' });
